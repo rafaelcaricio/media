@@ -166,7 +166,7 @@ impl WebRtcControllerBackend for GStreamerWebRtcController {
                 DataChannelEventTarget::Created(ref channel) => {
                     channel.close();
                     Ok(())
-                },
+                }
                 DataChannelEventTarget::Buffered(_) => data_channels
                     .remove(id)
                     .ok_or(WebRtcError::Backend("Unknown data channel".to_owned()))
@@ -186,7 +186,7 @@ impl WebRtcControllerBackend for GStreamerWebRtcController {
                 DataChannelEventTarget::Created(ref channel) => {
                     channel.send(message);
                     Ok(())
-                },
+                }
                 _ => Ok(()),
             },
             None => Err(WebRtcError::Backend("Unknown data channel".to_owned())),
@@ -263,7 +263,9 @@ impl WebRtcControllerBackend for GStreamerWebRtcController {
             }
             InternalEvent::UpdateSignalingState => {
                 use gst_webrtc::WebRTCSignalingState::*;
-                let val = self.webrtc.property::<gst_webrtc::WebRTCSignalingState>("signaling-state");
+                let val = self
+                    .webrtc
+                    .property::<gst_webrtc::WebRTCSignalingState>("signaling-state");
                 let state = match val {
                     Stable => SignalingState::Stable,
                     HaveLocalOffer => SignalingState::HaveLocalOffer,
@@ -282,7 +284,9 @@ impl WebRtcControllerBackend for GStreamerWebRtcController {
             }
             InternalEvent::UpdateGatheringState => {
                 use gst_webrtc::WebRTCICEGatheringState::*;
-                let val = self.webrtc.property::<gst_webrtc::WebRTCICEGatheringState>("ice-gathering-state");
+                let val = self
+                    .webrtc
+                    .property::<gst_webrtc::WebRTCICEGatheringState>("ice-gathering-state");
                 let state = match val {
                     New => GatheringState::New,
                     Gathering => GatheringState::Gathering,
@@ -298,7 +302,9 @@ impl WebRtcControllerBackend for GStreamerWebRtcController {
             }
             InternalEvent::UpdateIceConnectionState => {
                 use gst_webrtc::WebRTCICEConnectionState::*;
-                let val = self.webrtc.property::<gst_webrtc::WebRTCICEConnectionState>("ice-connection-state");
+                let val = self
+                    .webrtc
+                    .property::<gst_webrtc::WebRTCICEConnectionState>("ice-connection-state");
                 let state = match val {
                     New => IceConnectionState::New,
                     Checking => IceConnectionState::Checking,
@@ -465,9 +471,7 @@ impl GStreamerWebRtcController {
             self.remote_mline_info[idx].is_used = true;
             let caps = stream.caps_with_payload(self.remote_mline_info[idx].payload);
             element.set_property("caps", &caps);
-            let src = element
-                .static_pad("src")
-                .ok_or("Cannot request src pad")?;
+            let src = element.static_pad("src").ok_or("Cannot request src pad")?;
             let sink = self
                 .webrtc
                 .static_pad(&format!("sink_{}", idx))
@@ -480,9 +484,7 @@ impl GStreamerWebRtcController {
             let caps = stream.caps_with_payload(self.pt_counter);
             self.pt_counter += 1;
             element.set_property("caps", &caps);
-            let src = element
-                .static_pad("src")
-                .ok_or("Cannot request src pad")?;
+            let src = element.static_pad("src").ok_or("Cannot request src pad")?;
             let sink = self
                 .webrtc
                 .request_pad_simple(&format!("sink_{}", self.request_pad_counter))
@@ -706,11 +708,10 @@ fn on_incoming_stream(pipe: &gst::Pipeline, thread: Arc<Mutex<WebRtcThread>>, pa
         .get::<String>("media")
         .expect("Invalid 'media' field");
     let decodebin2 = decodebin.clone();
-    decodebin
-        .connect("pad-added", false, move |values| {
-            on_incoming_decodebin_stream(values, &pipe_clone, thread.clone(), &name);
-            None
-        });
+    decodebin.connect("pad-added", false, move |values| {
+        on_incoming_decodebin_stream(values, &pipe_clone, thread.clone(), &name);
+        None
+    });
     pipe.add(&decodebin).unwrap();
 
     let decodepad = decodebin.static_pad("sink").unwrap();
@@ -767,13 +768,9 @@ fn process_new_stream(
 }
 
 fn candidate(values: &[glib::Value]) -> IceCandidate {
-    let _webrtc = values[0]
-        .get::<gst::Element>()
-        .expect("Invalid argument");
+    let _webrtc = values[0].get::<gst::Element>().expect("Invalid argument");
     let sdp_mline_index = values[1].get::<u32>().expect("Invalid argument");
-    let candidate = values[2]
-        .get::<String>()
-        .expect("Invalid argument");
+    let candidate = values[2].get::<String>().expect("Invalid argument");
 
     IceCandidate {
         sdp_mline_index,

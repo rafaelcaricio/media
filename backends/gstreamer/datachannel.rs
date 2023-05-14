@@ -1,12 +1,12 @@
-use std::io::Read;
 use glib::{ObjectExt, ToSendValue, Value};
-use gst_webrtc::{WebRTCDataChannelState, WebRTCDataChannel};
+use gst_webrtc::{WebRTCDataChannel, WebRTCDataChannelState};
 use servo_media_webrtc::thread::InternalEvent;
 use servo_media_webrtc::WebRtcController as WebRtcThread;
 use servo_media_webrtc::{
     DataChannelEvent, DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState,
     WebRtcError, WebRtcResult,
 };
+use std::io::Read;
 use std::sync::Mutex;
 
 pub struct GStreamerWebRtcDataChannel {
@@ -131,7 +131,7 @@ impl GStreamerWebRtcDataChannel {
                 WebRTCDataChannelState::Closing => DataChannelState::Closing,
                 WebRTCDataChannelState::Closed => DataChannelState::Closed,
                 WebRTCDataChannelState::__Unknown(state) => DataChannelState::__Unknown(state),
-                _ => return
+                _ => return,
             };
             thread_
                 .lock()
@@ -152,7 +152,9 @@ impl GStreamerWebRtcDataChannel {
     pub fn send(&self, message: &DataChannelMessage) {
         match message {
             DataChannelMessage::Text(text) => self.channel.send_string(Some(text)),
-            DataChannelMessage::Binary(data) => self.channel.send_data(Some(&glib::Bytes::from(data.as_slice()))),
+            DataChannelMessage::Binary(data) => self
+                .channel
+                .send_data(Some(&glib::Bytes::from(data.as_slice()))),
         }
     }
 

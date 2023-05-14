@@ -1,8 +1,8 @@
 use glib;
+use glib::once_cell::sync::Lazy;
 use glib::subclass;
 use glib::subclass::prelude::*;
 use glib::translate::*;
-use glib::once_cell::sync::Lazy;
 use gst;
 use gst::prelude::*;
 use gst::subclass::prelude::*;
@@ -257,15 +257,15 @@ mod imp {
                 .expect("Could not create appsrc element");
 
             let pad_templ = klass.pad_template("src").unwrap();
-            let ghost_pad =
-                gst::GhostPad::builder_with_template(&pad_templ, Some("src"))
-                    .query_function(|pad, parent, query| {
-                        ServoSrc::catch_panic_pad_function(
-                            parent,
-                            || false,
-                            |servosrc| servosrc.query(pad, query),
-                        )
-                    }).build();
+            let ghost_pad = gst::GhostPad::builder_with_template(&pad_templ, Some("src"))
+                .query_function(|pad, parent, query| {
+                    ServoSrc::catch_panic_pad_function(
+                        parent,
+                        || false,
+                        |servosrc| servosrc.query(pad, query),
+                    )
+                })
+                .build();
 
             Self {
                 cat: gst::DebugCategory::new(

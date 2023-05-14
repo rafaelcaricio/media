@@ -1,8 +1,8 @@
 use glib;
+use glib::once_cell::sync::Lazy;
 use glib::subclass;
 use glib::subclass::prelude::*;
 use glib::translate::*;
-use glib::once_cell::sync::Lazy;
 use gst;
 use gst::prelude::*;
 use gst::subclass::prelude::*;
@@ -105,8 +105,7 @@ mod imp {
                     )
                 }
             };
-            proxysrc
-                .set_property("proxysink", &sink);
+            proxysrc.set_property("proxysink", &sink);
 
             // Add proxysrc to bin
             let bin = src.downcast_ref::<gst::Bin>().unwrap();
@@ -162,18 +161,14 @@ mod imp {
             let audio_proxysrc = gst::ElementFactory::make("proxysrc")
                 .build()
                 .expect("Could not create proxysrc element");
-            let audio_srcpad = gst::GhostPad::from_template(
-                &AUDIO_SRC_PAD_TEMPLATE,
-                Some("audio_src")
-            );
+            let audio_srcpad =
+                gst::GhostPad::from_template(&AUDIO_SRC_PAD_TEMPLATE, Some("audio_src"));
 
             let video_proxysrc = gst::ElementFactory::make("proxysrc")
                 .build()
                 .expect("Could not create proxysrc element");
-            let video_srcpad = gst::GhostPad::from_template(
-                &VIDEO_SRC_PAD_TEMPLATE,
-                Some("video_src"),
-            );
+            let video_srcpad =
+                gst::GhostPad::from_template(&VIDEO_SRC_PAD_TEMPLATE, Some("video_src"));
 
             Self {
                 cat: gst::DebugCategory::new(
@@ -217,9 +212,7 @@ mod imp {
 
         fn property(&self, _id: usize, pspec: &glib::ParamSpec) -> glib::Value {
             match pspec.name() {
-                "is-live" => {
-                    true.to_value()
-                }
+                "is-live" => true.to_value(),
                 _ => unimplemented!(),
             }
         }
@@ -264,7 +257,7 @@ mod imp {
     impl URIHandlerImpl for ServoMediaStreamSrc {
         const URI_TYPE: gst::URIType = gst::URIType::Src;
 
-        fn protocols() ->  &'static [&'static str] {
+        fn protocols() -> &'static [&'static str] {
             &["mediastream"]
         }
 
@@ -298,11 +291,8 @@ unsafe impl Sync for ServoMediaStreamSrc {}
 
 impl ServoMediaStreamSrc {
     pub fn set_stream(&self, stream: &mut GStreamerMediaStream, only_stream: bool) {
-        self.imp().set_stream(
-            stream,
-            self.upcast_ref::<gst::Element>(),
-            only_stream,
-        )
+        self.imp()
+            .set_stream(stream, self.upcast_ref::<gst::Element>(), only_stream)
     }
 }
 

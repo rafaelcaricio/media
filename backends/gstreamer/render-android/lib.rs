@@ -201,8 +201,7 @@ impl Render for RenderAndroid {
             .build()
             .map_err(|_| PlayerError::Backend("glupload creation failed".to_owned()))?;
 
-        pipeline
-            .set_property("video-sink", &vsinkbin);
+        pipeline.set_property("video-sink", &vsinkbin);
 
         let bus = pipeline.bus().expect("pipeline with no bus");
         let display_ = self.display.clone();

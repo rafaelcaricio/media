@@ -1,7 +1,7 @@
 use crate::media_stream::GStreamerMediaStream;
 use gst;
-use gst::prelude::*;
 use gst::caps::NoFeature;
+use gst::prelude::*;
 use servo_media_streams::capture::*;
 use servo_media_streams::registry::MediaStreamId;
 use servo_media_streams::MediaStreamType;

@@ -418,7 +418,8 @@ impl GStreamerPlayer {
         }
 
         let player = gst_player::Player::new(
-            None::<gst_player::PlayerVideoRenderer>, None::<gst_player::PlayerSignalDispatcher>,
+            None::<gst_player::PlayerVideoRenderer>,
+            None::<gst_player::PlayerSignalDispatcher>,
         );
 
         let pipeline = player.pipeline();
@@ -457,8 +458,7 @@ impl GStreamerPlayer {
         }
 
         // Set max size for the player buffer.
-        pipeline
-            .set_property("buffer-size", &MAX_BUFFER_SIZE);
+        pipeline.set_property("buffer-size", &MAX_BUFFER_SIZE);
 
         // Set player position interval update to 0.5 seconds.
         let mut config = player.config();
@@ -472,8 +472,7 @@ impl GStreamerPlayer {
                 .build()
                 .map_err(|_| PlayerError::Backend("appsink creation failed".to_owned()))?;
 
-            pipeline
-                .set_property("audio-sink", &audio_sink);
+            pipeline.set_property("audio-sink", &audio_sink);
 
             let audio_sink = audio_sink.dynamic_cast::<gst_app::AppSink>().unwrap();
             let audio_renderer_ = audio_renderer.clone();
@@ -614,10 +613,7 @@ impl GStreamerPlayer {
             let duration = duration.map(|duration| {
                 let nanos = duration.nseconds();
                 let seconds = duration.seconds();
-                time::Duration::new(
-                    seconds,
-                    (nanos % 1_000_000_000) as u32,
-                )
+                time::Duration::new(seconds, (nanos % 1_000_000_000) as u32)
             });
             let mut updated_metadata = None;
             if let Some(ref mut metadata) = inner.last_metadata {

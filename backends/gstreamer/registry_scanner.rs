@@ -39,23 +39,19 @@ impl GStreamerRegistryScanner {
 
     fn initialize(&mut self) {
         let audio_decoder_factories = gst::ElementFactory::factories_with_type(
-            gst::ElementFactoryType::DECODER
-            | gst::ElementFactoryType::MEDIA_AUDIO,
+            gst::ElementFactoryType::DECODER | gst::ElementFactoryType::MEDIA_AUDIO,
             gst::Rank::Marginal,
         );
         let audio_parser_factories = gst::ElementFactory::factories_with_type(
-            gst::ElementFactoryType::PARSER
-            | gst::ElementFactoryType::MEDIA_AUDIO,
+            gst::ElementFactoryType::PARSER | gst::ElementFactoryType::MEDIA_AUDIO,
             gst::Rank::None,
         );
         let video_decoder_factories = gst::ElementFactory::factories_with_type(
-            gst::ElementFactoryType::DECODER
-            | gst::ElementFactoryType::MEDIA_VIDEO,
+            gst::ElementFactoryType::DECODER | gst::ElementFactoryType::MEDIA_VIDEO,
             gst::Rank::Marginal,
         );
         let video_parser_factories = gst::ElementFactory::factories_with_type(
-            gst::ElementFactoryType::PARSER
-            | gst::ElementFactoryType::MEDIA_VIDEO,
+            gst::ElementFactoryType::PARSER | gst::ElementFactoryType::MEDIA_VIDEO,
             gst::Rank::Marginal,
         );
         let demux_factories = gst::ElementFactory::factories_with_type(
@@ -249,7 +245,10 @@ impl GStreamerRegistryScanner {
     }
 }
 
-fn has_element_for_media_type(factories: &glib::List<gst::ElementFactory>, media_type: &str) -> bool {
+fn has_element_for_media_type(
+    factories: &glib::List<gst::ElementFactory>,
+    media_type: &str,
+) -> bool {
     match gst::caps::Caps::from_str(media_type) {
         Ok(caps) => {
             for factory in factories {

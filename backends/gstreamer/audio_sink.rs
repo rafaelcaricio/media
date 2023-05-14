@@ -189,13 +189,13 @@ impl AudioSink for GStreamerAudioSink {
             // simply the number of samples to prevent rounding errors
             let pts = gst::ClockTime::from_nseconds(
                 sample_offset
-                .mul_div_floor(gst::ClockTime::SECOND.nseconds(), sample_rate)
-                .unwrap()
+                    .mul_div_floor(gst::ClockTime::SECOND.nseconds(), sample_rate)
+                    .unwrap(),
             );
             let next_pts: gst::ClockTime = gst::ClockTime::from_nseconds(
                 (sample_offset + n_samples)
-                .mul_div_floor(gst::ClockTime::SECOND.nseconds(), sample_rate)
-                .unwrap()
+                    .mul_div_floor(gst::ClockTime::SECOND.nseconds(), sample_rate)
+                    .unwrap(),
             );
             buffer.set_pts(Some(pts));
             buffer.set_duration(next_pts - pts);

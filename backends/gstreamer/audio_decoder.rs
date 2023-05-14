@@ -150,11 +150,12 @@ impl AudioDecoder for GStreamerAudioDecoder {
                     .map_err(|_| {
                         AudioDecoderError::Backend("audioconvert creation failed".to_owned())
                     })?;
-                let resample = gst::ElementFactory::make("audioresample")
-                    .build()
-                    .map_err(|_| {
-                        AudioDecoderError::Backend("audioresample creation failed".to_owned())
-                    })?;
+                let resample =
+                    gst::ElementFactory::make("audioresample")
+                        .build()
+                        .map_err(|_| {
+                            AudioDecoderError::Backend("audioresample creation failed".to_owned())
+                        })?;
                 let filter = gst::ElementFactory::make("capsfilter")
                     .build()
                     .map_err(|_| {
@@ -255,12 +256,9 @@ impl AudioDecoder for GStreamerAudioDecoder {
                                 .map_err(|e| AudioDecoderError::Backend(e.to_string()))?;
                         }
 
-                        let sink_pad =
-                            queue
-                                .static_pad("sink")
-                                .ok_or(AudioDecoderError::Backend(
-                                    "Could not get static pad sink".to_owned(),
-                                ))?;
+                        let sink_pad = queue.static_pad("sink").ok_or(
+                            AudioDecoderError::Backend("Could not get static pad sink".to_owned()),
+                        )?;
                         src_pad.link(&sink_pad).map(|_| ()).map_err(|e| {
                             AudioDecoderError::Backend(format!("Sink pad link failed: {}", e))
                         })

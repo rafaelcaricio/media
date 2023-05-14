@@ -45,8 +45,8 @@ mod render;
 mod source;
 pub mod webrtc;
 
-use gst::prelude::*;
 use device_monitor::GStreamerDeviceMonitor;
+use gst::prelude::*;
 use ipc_channel::ipc::IpcSender;
 use media_stream::GStreamerMediaStream;
 use mime::Mime;
