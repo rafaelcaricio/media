@@ -20,8 +20,8 @@ cache:
 
 install:
   - appveyor-retry choco install pkgconfiglite
-  - appveyor-retry appveyor DownloadFile https://gstreamer.freedesktop.org/data/pkg/windows/1.22.2/gstreamer-1.0-devel-msvc-x86_64-1.22.2.msi
-  - appveyor-retry appveyor DownloadFile https://gstreamer.freedesktop.org/data/pkg/windows/1.22.2/gstreamer-1.0-msvc-x86_64-1.22.2.msi
+  - appveyor-retry appveyor DownloadFile https://gstreamer.freedesktop.org/data/pkg/windows/1.22.2/msvc/gstreamer-1.0-devel-msvc-x86_64-1.22.2.msi
+  - appveyor-retry appveyor DownloadFile https://gstreamer.freedesktop.org/data/pkg/windows/1.22.2/msvc/gstreamer-1.0-msvc-x86_64-1.22.2.msi
   - msiexec /i gstreamer-1.0-devel-msvc-x86_64-1.22.2.msi /quiet /qn /norestart /log install-devel.log ADDLOCAL=ALL
   - msiexec /i gstreamer-1.0-msvc-x86_64-1.22.2.msi /quiet /qn /norestart /log install.log ADDLOCAL=ALL
   - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
