@@ -45,8 +45,8 @@ mod render;
 mod source;
 pub mod webrtc;
 
+use gst::prelude::*;
 use device_monitor::GStreamerDeviceMonitor;
-use gst::ClockExt;
 use ipc_channel::ipc::IpcSender;
 use media_stream::GStreamerMediaStream;
 use mime::Mime;
@@ -75,7 +75,7 @@ use std::thread;
 use std::vec::Vec;
 
 lazy_static! {
-    static ref BACKEND_BASE_TIME: gst::ClockTime = gst::SystemClock::obtain().get_time();
+    static ref BACKEND_BASE_TIME: gst::ClockTime = gst::SystemClock::obtain().time().unwrap();
 }
 
 pub struct GStreamerBackend {
@@ -346,11 +346,11 @@ pub fn set_element_flags<T: glib::IsA<gst::Object> + glib::IsA<gst::Element>>(
     flags: gst::ElementFlags,
 ) {
     unsafe {
-        use glib::translate::ToGlib;
+        use glib::translate::ToGlibPtr;
 
         let ptr: *mut gst_ffi::GstObject = element.as_ptr() as *mut _;
         let _guard = MutexGuard::lock(&(*ptr).lock);
-        (*ptr).flags |= flags.to_glib();
+        (*ptr).flags |= flags.bits();
     }
 }
 

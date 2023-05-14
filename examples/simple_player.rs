@@ -5,7 +5,7 @@ extern crate servo_media_auto;
 use ipc_channel::ipc;
 use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
 use servo_media::player::{PlayerEvent, StreamType};
-use servo_media::{ClientContextId, ServoMedia};
+use servo_media::{ClientContextId, ServoMedia, SupportsMediaType};
 use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};

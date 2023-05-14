@@ -1,8 +1,6 @@
+use gst::prelude::*;
 use gst::Caps;
-use gst::DeviceExt;
 use gst::DeviceMonitor as GstDeviceMonitor;
-use gst::DeviceMonitorExt;
-use gst::DeviceMonitorExtManual;
 use std::cell::RefCell;
 
 use servo_media_streams::device_monitor::{MediaDeviceInfo, MediaDeviceKind, MediaDeviceMonitor};
@@ -29,13 +27,13 @@ impl GStreamerDeviceMonitor {
         let video_caps = Caps::new_simple("video/x-raw", &[]);
         device_monitor.add_filter(Some(VIDEO_SOURCE), Some(&video_caps));
         let devices = device_monitor
-            .get_devices()
+            .devices()
             .iter()
             .filter_map(|device| {
-                let display_name = device.get_display_name().as_str().to_owned();
+                let display_name = device.display_name().as_str().to_owned();
                 Some(MediaDeviceInfo {
                     device_id: display_name.clone(),
-                    kind: match device.get_device_class().as_str() {
+                    kind: match device.device_class().as_str() {
                         AUDIO_SOURCE => MediaDeviceKind::AudioInput,
                         AUDIO_SINK => MediaDeviceKind::AudioOutput,
                         VIDEO_SOURCE => MediaDeviceKind::VideoInput,

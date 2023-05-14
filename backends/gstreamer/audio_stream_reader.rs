@@ -30,20 +30,19 @@ impl GStreamerAudioStreamReader {
 
         // XXXManishearth this is only necessary because of an upstream
         // gstreamer bug
-        let capsfilter0 = gst::ElementFactory::make("capsfilter", None)
-            .map_err(|_| "capsfilter creation failed".to_owned())?;
         let caps = Caps::new_simple("audio/x-raw", &[("layout", &"interleaved")]);
-        capsfilter0.set_property("caps", &caps).unwrap();
-
-        let split = gst::ElementFactory::make("audiobuffersplit", None)
-            .map_err(|_| "audiobuffersplit creation failed".to_owned())?;
-        split
-            .set_property("output-buffer-duration", &time_per_block)
-            .map_err(|_| "setting duration failed".to_owned())?;
-        let convert = gst::ElementFactory::make("audioconvert", None)
-            .map_err(|_| "audioconvert creation failed".to_owned())?;
-        let capsfilter = gst::ElementFactory::make("capsfilter", None)
+        let capsfilter0 = gst::ElementFactory::make("capsfilter")
+            .property("caps", &caps)
+            .build()
             .map_err(|_| "capsfilter creation failed".to_owned())?;
+
+        let split = gst::ElementFactory::make("audiobuffersplit")
+            .property("output-buffer-duration", &time_per_block)
+            .build()
+            .map_err(|_| "audiobuffersplit creation failed".to_owned())?;
+        let convert = gst::ElementFactory::make("audioconvert")
+            .build()
+            .map_err(|_| "audioconvert creation failed".to_owned())?;
         let caps = Caps::new_simple(
             "audio/x-raw",
             &[
@@ -52,11 +51,14 @@ impl GStreamerAudioStreamReader {
                 ("rate", &(sample_rate as i32)),
             ],
         );
-        capsfilter.set_property("caps", &caps).unwrap();
-        let sink = gst::ElementFactory::make("appsink", None)
+        let capsfilter = gst::ElementFactory::make("capsfilter")
+            .property("caps", &caps)
+            .build()
+            .map_err(|_| "capsfilter creation failed".to_owned())?;
+        let sink = gst::ElementFactory::make("appsink")
+            .property("sync", false)
+            .build()
             .map_err(|_| "appsink creation failed".to_owned())?;
-        sink.set_property("sync", &false.to_value())
-            .expect("appsink doesn't handle expected 'sync' property");
 
         let appsink = sink.clone().dynamic_cast::<gst_app::AppSink>().unwrap();
 
@@ -69,10 +71,10 @@ impl GStreamerAudioStreamReader {
             e.sync_state_with_parent().map_err(|e| e.to_string())?;
         }
         appsink.set_callbacks(
-            gst_app::AppSinkCallbacks::new()
+            gst_app::AppSinkCallbacks::builder()
                 .new_sample(move |appsink| {
                     let sample = appsink.pull_sample().map_err(|_| gst::FlowError::Eos)?;
-                    let buffer = sample.get_buffer_owned().ok_or(gst::FlowError::Error)?;
+                    let buffer = sample.buffer_owned().ok_or(gst::FlowError::Error)?;
 
                     let buffer = buffer
                         .into_mapped_buffer_readable()

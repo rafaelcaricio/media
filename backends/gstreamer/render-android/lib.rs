@@ -122,21 +122,17 @@ impl Render for RenderAndroid {
         if self.gst_context.lock().unwrap().is_none() && self.gl_upload.lock().unwrap().is_some() {
             *self.gst_context.lock().unwrap() =
                 if let Some(glupload) = self.gl_upload.lock().unwrap().as_ref() {
-                    glupload
-                        .get_property("context")
-                        .or_else(|_| Err(()))?
-                        .get::<gst_gl::GLContext>()
-                        .unwrap_or_else(|_| None)
+                    Some(glupload.property::<gst_gl::GLContext>("context"))
                 } else {
                     None
                 };
         }
 
-        let buffer = sample.get_buffer_owned().ok_or_else(|| ())?;
-        let caps = sample.get_caps().ok_or_else(|| ())?;
+        let buffer = sample.buffer_owned().ok_or_else(|| ())?;
+        let caps = sample.caps().ok_or_else(|| ())?;
 
         let is_external_oes = caps
-            .get_structure(0)
+            .structure(0)
             .and_then(|s| {
                 s.get::<&str>("texture-target").ok().and_then(|target| {
                     if target == Some("external-oes") {
@@ -192,34 +188,30 @@ impl Render for RenderAndroid {
             ));
         }
 
-        let vsinkbin = gst::ElementFactory::make("glsinkbin", Some("servo-media-vsink"))
-            .map_err(|_| PlayerError::Backend("glupload creation failed".to_owned()))?;
-
         let caps = gst::Caps::builder("video/x-raw")
             .features(&[&gst_gl::CAPS_FEATURE_MEMORY_GL_MEMORY])
             .field("format", &gst_video::VideoFormat::Rgba.to_string())
             .field("texture-target", &gst::List::new(&[&"2D", &"external-oes"]))
             .build();
-        appsink
-            .set_property("caps", &caps)
-            .expect("appsink doesn't have expected 'caps' property");
+        appsink.set_property("caps", &caps);
 
-        vsinkbin
-            .set_property("sink", &appsink)
-            .expect("glsinkbin doesn't have expected 'sink' property");
+        let vsinkbin = gst::ElementFactory::make("glsinkbin")
+            .name("servo-media-vsink")
+            .property("sink", &appsink)
+            .build()
+            .map_err(|_| PlayerError::Backend("glupload creation failed".to_owned()))?;
 
         pipeline
-            .set_property("video-sink", &vsinkbin)
-            .expect("playbin doesn't have expected 'video-sink' property");
+            .set_property("video-sink", &vsinkbin);
 
-        let bus = pipeline.get_bus().expect("pipeline with no bus");
+        let bus = pipeline.bus().expect("pipeline with no bus");
         let display_ = self.display.clone();
         let context_ = self.app_context.clone();
         bus.set_sync_handler(move |_, msg| {
             match msg.view() {
                 gst::MessageView::NeedContext(ctxt) => {
-                    if let Some(el) = msg.get_src().map(|s| s.downcast::<gst::Element>().unwrap()) {
-                        let context_type = ctxt.get_context_type();
+                    if let Some(el) = msg.src().map(|s| s.downcast::<gst::Element>().unwrap()) {
+                        let context_type = ctxt.context_type();
                         if context_type == *gst_gl::GL_DISPLAY_CONTEXT_TYPE {
                             let ctxt = gst::Context::new(context_type, true);
                             ctxt.set_gl_display(&display_);
@@ -227,7 +219,7 @@ impl Render for RenderAndroid {
                         } else if context_type == "gst.gl.app_context" {
                             let mut ctxt = gst::Context::new(context_type, true);
                             {
-                                let s = ctxt.get_mut().unwrap().get_mut_structure();
+                                let s = ctxt.get_mut().unwrap().structure_mut();
                                 s.set_value("context", context_.to_send_value());
                             }
                             el.set_context(&ctxt);
@@ -247,7 +239,7 @@ impl Render for RenderAndroid {
         *self.gl_upload.lock().unwrap() = loop {
             match iter.next() {
                 Ok(Some(element)) => {
-                    if "glupload" == element.get_factory().unwrap().get_name() {
+                    if "glupload" == element.factory().unwrap().name() {
                         break Some(element);
                     }
                 }

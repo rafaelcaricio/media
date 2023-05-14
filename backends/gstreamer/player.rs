@@ -32,11 +32,11 @@ use std::u64;
 const MAX_BUFFER_SIZE: i32 = 500 * 1024 * 1024;
 
 fn metadata_from_media_info(media_info: &gst_player::PlayerMediaInfo) -> Result<Metadata, ()> {
-    let dur = media_info.get_duration();
-    let duration = if dur != gst::ClockTime::none() {
-        let mut nanos = dur.nanoseconds().ok_or_else(|| ())?;
+    let dur = media_info.duration();
+    let duration = if let Some(dur) = dur {
+        let mut nanos = dur.nseconds();
         nanos = nanos % 1_000_000_000;
-        let seconds = dur.seconds().ok_or_else(|| ())?;
+        let seconds = dur.seconds();
         Some(time::Duration::new(seconds, nanos as u32))
     } else {
         None
@@ -46,23 +46,23 @@ fn metadata_from_media_info(media_info: &gst_player::PlayerMediaInfo) -> Result<
     let mut video_tracks = Vec::new();
 
     let format = media_info
-        .get_container_format()
+        .container_format()
         .unwrap_or_else(|| glib::GString::from(""))
         .to_string();
 
-    for stream_info in media_info.get_stream_list() {
-        let stream_type = stream_info.get_stream_type();
+    for stream_info in media_info.stream_list() {
+        let stream_type = stream_info.stream_type();
         match stream_type.as_str() {
             "audio" => {
                 let codec = stream_info
-                    .get_codec()
+                    .codec()
                     .unwrap_or_else(|| glib::GString::from(""))
                     .to_string();
                 audio_tracks.push(codec);
             }
             "video" => {
                 let codec = stream_info
-                    .get_codec()
+                    .codec()
                     .unwrap_or_else(|| glib::GString::from(""))
                     .to_string();
                 video_tracks.push(codec);
@@ -72,17 +72,17 @@ fn metadata_from_media_info(media_info: &gst_player::PlayerMediaInfo) -> Result<
     }
 
     let mut width: u32 = 0;
-    let height: u32 = if media_info.get_number_of_video_streams() > 0 {
-        let first_video_stream = &media_info.get_video_streams()[0];
-        width = first_video_stream.get_width() as u32;
-        first_video_stream.get_height() as u32
+    let height: u32 = if media_info.number_of_video_streams() > 0 {
+        let first_video_stream = &media_info.video_streams()[0];
+        width = first_video_stream.width() as u32;
+        first_video_stream.height() as u32
     } else {
         0
     };
 
     let is_seekable = media_info.is_seekable();
     let is_live = media_info.is_live();
-    let title = media_info.get_title().map(|s| s.as_str().to_string());
+    let title = media_info.title().map(|s| s.as_str().to_string());
 
     Ok(Metadata {
         duration,
@@ -154,7 +154,7 @@ impl PlayerInner {
         self.rate = rate;
         if let Some(ref metadata) = self.last_metadata {
             if !metadata.is_seekable {
-                gst_warning!(self.cat, obj: &self.player,
+                gst::warning!(self.cat, obj: &self.player,
                              "Player must be seekable in order to set the playback rate");
                 return Err(PlayerError::NonSeekableStream);
             }
@@ -185,7 +185,7 @@ impl PlayerInner {
             Some(ref mut source) => {
                 if let PlayerSource::Seekable(source) = source {
                     source
-                        .end_of_stream()
+                        .push_end_of_stream()
                         .map(|_| ())
                         .map_err(|_| PlayerError::EOSFailed)
                 } else {
@@ -203,7 +203,7 @@ impl PlayerInner {
         if let Some(ref metadata) = self.last_metadata {
             if let Some(ref duration) = metadata.duration {
                 if duration < &time::Duration::new(time as u64, 0) {
-                    gst_warning!(self.cat, obj: &self.player, "Trying to seek out of range");
+                    gst::warning!(self.cat, obj: &self.player, "Trying to seek out of range");
                     return Err(PlayerError::SeekOutOfRange);
                 }
             }
@@ -242,25 +242,25 @@ impl PlayerInner {
         let mut result = vec![];
         if let Some(ref metadata) = self.last_metadata {
             if let Some(ref duration) = metadata.duration {
-                let pipeline = self.player.get_pipeline();
-                let mut buffering = gst::Query::new_buffering(gst::Format::Percent);
+                let pipeline = self.player.pipeline();
+                let mut buffering = gst::query::Buffering::new(gst::Format::Percent);
                 if pipeline.query(&mut buffering) {
-                    let ranges = buffering.get_ranges();
+                    let ranges = buffering.ranges();
                     for i in 0..ranges.len() {
                         let start = ranges[i].0;
                         let end = ranges[i].1;
                         let start = (if let gst::GenericFormattedValue::Percent(start) = start {
                             start.unwrap()
                         } else {
-                            0
+                            gst::format::Percent::from_percent(0)
                         } * duration.as_secs() as u32
-                            / (gst::FORMAT_PERCENT_MAX)) as f64;
+                            / gst::format::Percent::MAX) as f64;
                         let end = (if let gst::GenericFormattedValue::Percent(end) = end {
                             end.unwrap()
                         } else {
-                            0
+                            gst::format::Percent::from_percent(0)
                         } * duration.as_secs() as u32
-                            / (gst::FORMAT_PERCENT_MAX)) as f64;
+                            / gst::format::Percent::MAX) as f64;
                         result.push(Range { start, end });
                     }
                 }
@@ -280,12 +280,12 @@ impl PlayerInner {
                 {
                     let playbin = self
                         .player
-                        .get_pipeline()
+                        .pipeline()
                         .dynamic_cast::<gst::Pipeline>()
                         .unwrap();
                     let clock = gst::SystemClock::obtain();
                     playbin.set_base_time(*BACKEND_BASE_TIME);
-                    playbin.set_start_time(gst::ClockTime::none());
+                    playbin.set_start_time(gst::ClockTime::NONE);
                     playbin.use_clock(Some(&clock));
 
                     source.set_stream(&mut stream, only_stream);
@@ -418,19 +418,17 @@ impl GStreamerPlayer {
         }
 
         let player = gst_player::Player::new(
-            /* video renderer */ None, /* signal dispatcher */ None,
+            None::<gst_player::PlayerVideoRenderer>, None::<gst_player::PlayerSignalDispatcher>,
         );
 
-        let pipeline = player.get_pipeline();
+        let pipeline = player.pipeline();
 
         // FIXME(#282): The progressive downloading breaks playback on Windows and Android.
         if !cfg!(any(target_os = "windows", target_os = "android")) {
             // Set player to perform progressive downloading. This will make the
             // player store the downloaded media in a local temporary file for
             // faster playback of already-downloaded chunks.
-            let flags = pipeline
-                .get_property("flags")
-                .expect("playbin doesn't have expected 'flags' property");
+            let flags = pipeline.property_value("flags");
             let flags_class = match glib::FlagsClass::new(flags.type_()) {
                 Some(flags) => flags,
                 None => {
@@ -455,41 +453,38 @@ impl GStreamerPlayer {
                     ));
                 }
             };
-            pipeline
-                .set_property("flags", &flags)
-                .expect("playbin doesn't have expected 'flags' property");
+            pipeline.set_property_from_value("flags", &flags);
         }
 
         // Set max size for the player buffer.
         pipeline
-            .set_property("buffer-size", &MAX_BUFFER_SIZE)
-            .expect("playbin doesn't have expected 'buffer-size' property");
+            .set_property("buffer-size", &MAX_BUFFER_SIZE);
 
         // Set player position interval update to 0.5 seconds.
-        let mut config = player.get_config();
+        let mut config = player.config();
         config.set_position_update_interval(500u32);
         player
             .set_config(config)
             .map_err(|e| PlayerError::Backend(e.to_string()))?;
 
         if let Some(ref audio_renderer) = self.audio_renderer {
-            let audio_sink = gst::ElementFactory::make("appsink", None)
+            let audio_sink = gst::ElementFactory::make("appsink")
+                .build()
                 .map_err(|_| PlayerError::Backend("appsink creation failed".to_owned()))?;
 
             pipeline
-                .set_property("audio-sink", &audio_sink)
-                .expect("playbin doesn't have expected 'audio-sink' property");
+                .set_property("audio-sink", &audio_sink);
 
             let audio_sink = audio_sink.dynamic_cast::<gst_app::AppSink>().unwrap();
             let audio_renderer_ = audio_renderer.clone();
             audio_sink.set_callbacks(
-                gst_app::AppSinkCallbacks::new()
+                gst_app::AppSinkCallbacks::builder()
                     .new_preroll(|_| Ok(gst::FlowSuccess::Ok))
                     .new_sample(move |audio_sink| {
                         let sample = audio_sink.pull_sample().map_err(|_| gst::FlowError::Eos)?;
-                        let buffer = sample.get_buffer_owned().ok_or(gst::FlowError::Error)?;
+                        let buffer = sample.buffer_owned().ok_or(gst::FlowError::Error)?;
                         let audio_info = sample
-                            .get_caps()
+                            .caps()
                             .and_then(|caps| gst_audio::AudioInfo::from_caps(caps).ok())
                             .ok_or(gst::FlowError::Error)?;
                         let positions = audio_info.positions().ok_or(gst::FlowError::Error)?;
@@ -532,9 +527,7 @@ impl GStreamerPlayer {
                 "servosrc://".to_value()
             }
         };
-        player
-            .set_property("uri", &uri)
-            .expect("playbin doesn't have expected 'uri' property");
+        player.set_property("uri", &uri);
 
         // No video_renderers no video
         if self.video_renderer.is_none() {
@@ -585,7 +578,7 @@ impl GStreamerPlayer {
         let observer = self.observer.clone();
         // Handle `position-update` signal.
         player!(inner).connect_position_updated(move |_, position| {
-            if let Some(seconds) = position.seconds() {
+            if let Some(seconds) = position.map(|p| p.seconds()) {
                 notify!(observer, PlayerEvent::PositionChanged(seconds));
             }
         });
@@ -593,9 +586,7 @@ impl GStreamerPlayer {
         let observer = self.observer.clone();
         // Handle `seek-done` signal.
         player!(inner).connect_seek_done(move |_, position| {
-            if let Some(seconds) = position.seconds() {
-                notify!(observer, PlayerEvent::SeekDone(seconds));
-            }
+            notify!(observer, PlayerEvent::SeekDone(position.seconds()));
         });
 
         // Handle `media-info-updated` signal.
@@ -609,7 +600,7 @@ impl GStreamerPlayer {
                     if metadata.is_seekable {
                         inner.player.set_rate(inner.rate);
                     }
-                    gst_info!(inner.cat, obj: &inner.player, "Metadata updated: {:?}", metadata);
+                    gst::info!(inner.cat, obj: &inner.player, "Metadata updated: {:?}", metadata);
                     notify!(observer, PlayerEvent::MetadataUpdated(metadata));
                 }
             }
@@ -620,31 +611,21 @@ impl GStreamerPlayer {
         let observer = self.observer.clone();
         player!(inner).connect_duration_changed(move |_, duration| {
             let mut inner = inner_clone.lock().unwrap();
-            let duration = if duration != gst::ClockTime::none() {
-                let nanos = duration.nanoseconds();
-                if nanos.is_none() {
-                    gst_info!(inner.cat, obj: &inner.player, "Could not get duration nanoseconds");
-                    return;
-                }
+            let duration = duration.map(|duration| {
+                let nanos = duration.nseconds();
                 let seconds = duration.seconds();
-                if seconds.is_none() {
-                    gst_info!(inner.cat, obj: &inner.player, "Could not get duration seconds");
-                    return;
-                }
-                Some(time::Duration::new(
-                    seconds.unwrap(),
-                    (nanos.unwrap() % 1_000_000_000) as u32,
-                ))
-            } else {
-                None
-            };
+                time::Duration::new(
+                    seconds,
+                    (nanos % 1_000_000_000) as u32,
+                )
+            });
             let mut updated_metadata = None;
             if let Some(ref mut metadata) = inner.last_metadata {
                 metadata.duration = duration;
                 updated_metadata = Some(metadata.clone());
             }
             if updated_metadata.is_some() {
-                gst_info!(inner.cat, obj: &inner.player, "Duration updated: {:?}",
+                gst::info!(inner.cat, obj: &inner.player, "Duration updated: {:?}",
                               updated_metadata);
                 notify!(
                     observer,
@@ -658,7 +639,7 @@ impl GStreamerPlayer {
             let observer = self.observer.clone();
             // Set video_sink callbacks.
             inner.lock().unwrap().video_sink.set_callbacks(
-                gst_app::AppSinkCallbacks::new()
+                gst_app::AppSinkCallbacks::builder()
                     .new_preroll(|_| Ok(gst::FlowSuccess::Ok))
                     .new_sample(move |video_sink| {
                         let sample = video_sink.pull_sample().map_err(|_| gst::FlowError::Eos)?;
@@ -678,7 +659,7 @@ impl GStreamerPlayer {
         let (receiver, error_handler_id) = {
             let inner_clone = inner.clone();
             let mut inner = inner.lock().unwrap();
-            let pipeline = inner.player.get_pipeline();
+            let pipeline = inner.player.pipeline();
 
             let (sender, receiver) = mpsc::channel();
 
@@ -686,9 +667,9 @@ impl GStreamerPlayer {
             let sender_clone = sender.clone();
             let is_ready_clone = self.is_ready.clone();
             let observer = self.observer.clone();
-            let connect_result = pipeline.connect("source-setup", false, move |args| {
+            pipeline.connect("source-setup", false, move |args| {
                 let source = match args[1].get::<gst::Element>() {
-                    Ok(Some(source)) => source,
+                    Ok(source) => source,
                     _ => {
                         let _ = notify!(
                             sender,
@@ -720,7 +701,7 @@ impl GStreamerPlayer {
                         let enough_data__ = inner.enough_data.clone();
                         let seek_channel = Arc::new(Mutex::new(SeekChannel::new()));
                         servosrc.set_callbacks(
-                            gst_app::AppSrcCallbacks::new()
+                            gst_app::AppSrcCallbacks::builder()
                                 .need_data(move |_, _| {
                                     // We block the caller of the setup method until we get
                                     // the first need-data signal, so we ensure that we
@@ -782,13 +763,6 @@ impl GStreamerPlayer {
 
                 None
             });
-
-            if connect_result.is_err() {
-                let _ = notify!(
-                    sender_clone,
-                    Err(PlayerError::Backend("Source setup failed".to_owned()))
-                );
-            }
 
             let error_handler_id = inner.player.connect_error(move |player, error| {
                 let _ = notify!(sender_clone, Err(PlayerError::Backend(error.to_string())));
