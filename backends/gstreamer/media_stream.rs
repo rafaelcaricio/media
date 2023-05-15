@@ -1,5 +1,4 @@
 use super::BACKEND_BASE_TIME;
-use glib::prelude::*;
 use gst;
 use gst::prelude::*;
 use servo_media_streams::registry::{
@@ -11,16 +10,16 @@ use std::sync::{Arc, Mutex};
 
 lazy_static! {
     pub static ref RTP_CAPS_OPUS: gst::Caps = {
-        gst::Caps::new_simple(
-            "application/x-rtp",
-            &[("media", &"audio"), ("encoding-name", &"OPUS")],
-        )
+        gst::Caps::builder("application/x-rtp")
+            .field("media", "audio")
+            .field("encoding-name", "OPUS")
+            .build()
     };
     pub static ref RTP_CAPS_VP8: gst::Caps = {
-        gst::Caps::new_simple(
-            "application/x-rtp",
-            &[("media", &"video"), ("encoding-name", &"VP8")],
-        )
+        gst::Caps::builder("application/x-rtp")
+            .field("media", "video")
+            .field("encoding-name", "VP8")
+            .build()
     };
 }
 
@@ -68,22 +67,16 @@ impl GStreamerMediaStream {
 
     pub fn caps_with_payload(&self, payload: i32) -> gst::Caps {
         match self.type_ {
-            MediaStreamType::Audio => gst::Caps::new_simple(
-                "application/x-rtp",
-                &[
-                    ("media", &"audio"),
-                    ("encoding-name", &"OPUS"),
-                    ("payload", &(payload)),
-                ],
-            ),
-            MediaStreamType::Video => gst::Caps::new_simple(
-                "application/x-rtp",
-                &[
-                    ("media", &"video"),
-                    ("encoding-name", &"VP8"),
-                    ("payload", &(payload)),
-                ],
-            ),
+            MediaStreamType::Audio => gst::Caps::builder("application/x-rtp")
+                .field("media", "audio")
+                .field("encoding-name", "OPUS")
+                .field("payload", payload)
+                .build(),
+            MediaStreamType::Video => gst::Caps::builder("application/x-rtp")
+                .field("media", "video")
+                .field("encoding-name", "VP8")
+                .field("payload", payload)
+                .build(),
         }
     }
 

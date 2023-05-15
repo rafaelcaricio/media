@@ -1,12 +1,11 @@
-use glib::{ObjectExt, ToSendValue, Value};
+use glib::{ObjectExt, ToSendValue};
 use gst_webrtc::{WebRTCDataChannel, WebRTCDataChannelState};
 use servo_media_webrtc::thread::InternalEvent;
 use servo_media_webrtc::WebRtcController as WebRtcThread;
 use servo_media_webrtc::{
     DataChannelEvent, DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState,
-    WebRtcError, WebRtcResult,
+    WebRtcError,
 };
-use std::io::Read;
 use std::sync::Mutex;
 
 pub struct GStreamerWebRtcDataChannel {

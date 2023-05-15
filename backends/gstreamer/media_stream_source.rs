@@ -1,13 +1,11 @@
+use crate::media_stream::{GStreamerMediaStream, RTP_CAPS_OPUS, RTP_CAPS_VP8};
 use glib;
 use glib::once_cell::sync::Lazy;
-use glib::subclass;
 use glib::subclass::prelude::*;
-use glib::translate::*;
 use gst;
 use gst::prelude::*;
 use gst::subclass::prelude::*;
 use gst_base::UniqueFlowCombiner;
-use media_stream::{GStreamerMediaStream, RTP_CAPS_OPUS, RTP_CAPS_VP8};
 use servo_media_streams::{MediaStream, MediaStreamType};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -121,7 +119,7 @@ mod imp {
 
             src.add_pad(src_pad)
                 .expect("Could not add source pad to media stream src");
-            ::set_element_flags(src, gst::ElementFlags::SOURCE);
+            src.set_element_flags(gst::ElementFlags::SOURCE);
 
             let proxy_pad = src_pad.internal().unwrap();
             src_pad.set_active(true).expect("Could not active pad");

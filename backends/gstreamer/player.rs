@@ -1,4 +1,8 @@
 use super::BACKEND_BASE_TIME;
+use crate::media_stream::GStreamerMediaStream;
+use crate::media_stream_source::{register_servo_media_stream_src, ServoMediaStreamSrc};
+use crate::render::GStreamerRender;
+use crate::source::{register_servo_src, ServoSrc};
 use byte_slice_cast::AsSliceOf;
 use glib;
 use glib::prelude::*;
@@ -8,9 +12,6 @@ use gst_app;
 use gst_player;
 use gst_player::prelude::*;
 use ipc_channel::ipc::{channel, IpcReceiver, IpcSender};
-use media_stream::GStreamerMediaStream;
-use media_stream_source::{register_servo_media_stream_src, ServoMediaStreamSrc};
-use render::GStreamerRender;
 use servo_media_player::audio::AudioRenderer;
 use servo_media_player::context::PlayerGLContext;
 use servo_media_player::metadata::Metadata;
@@ -20,7 +21,6 @@ use servo_media_player::{
 };
 use servo_media_streams::registry::{get_stream, MediaStreamId};
 use servo_media_traits::{BackendMsg, ClientContextId, MediaInstance};
-use source::{register_servo_src, ServoSrc};
 use std::cell::RefCell;
 use std::ops::Range;
 use std::sync::atomic::{AtomicBool, Ordering};

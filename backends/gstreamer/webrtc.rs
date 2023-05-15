@@ -1,13 +1,13 @@
 use super::BACKEND_BASE_TIME;
+use crate::datachannel::GStreamerWebRtcDataChannel;
+use crate::media_stream::GStreamerMediaStream;
 use boxfnonce::SendBoxFnOnce;
-use datachannel::GStreamerWebRtcDataChannel;
 use glib;
 use glib::prelude::*;
 use gst;
 use gst::prelude::*;
 use gst_sdp;
 use gst_webrtc;
-use media_stream::GStreamerMediaStream;
 use servo_media_streams::registry::{get_stream, MediaStreamId};
 use servo_media_streams::MediaStreamType;
 use servo_media_webrtc::datachannel::DataChannelId;

@@ -1,4 +1,4 @@
-use media_stream::GStreamerMediaStream;
+use crate::media_stream::GStreamerMediaStream;
 use servo_media_audio::block::{Block, FRAMES_PER_BLOCK_USIZE};
 use servo_media_audio::AudioStreamReader;
 use servo_media_streams::registry::{get_stream, MediaStreamId};
@@ -6,7 +6,7 @@ use std::sync::mpsc::{channel, Receiver};
 
 use byte_slice_cast::*;
 use gst::prelude::*;
-use gst::{Caps, Fraction};
+use gst::Fraction;
 use gst_audio::AUDIO_FORMAT_F32;
 
 pub struct GStreamerAudioStreamReader {
@@ -30,7 +30,9 @@ impl GStreamerAudioStreamReader {
 
         // XXXManishearth this is only necessary because of an upstream
         // gstreamer bug
-        let caps = Caps::new_simple("audio/x-raw", &[("layout", &"interleaved")]);
+        let caps = gst_audio::AudioCapsBuilder::new()
+            .layout(gst_audio::AudioLayout::Interleaved)
+            .build();
         let capsfilter0 = gst::ElementFactory::make("capsfilter")
             .property("caps", caps)
             .build()
@@ -43,14 +45,11 @@ impl GStreamerAudioStreamReader {
         let convert = gst::ElementFactory::make("audioconvert")
             .build()
             .map_err(|_| "audioconvert creation failed".to_owned())?;
-        let caps = Caps::new_simple(
-            "audio/x-raw",
-            &[
-                ("layout", &"non-interleaved"),
-                ("format", &AUDIO_FORMAT_F32.to_string()),
-                ("rate", &(sample_rate as i32)),
-            ],
-        );
+        let caps = gst_audio::AudioCapsBuilder::new()
+            .layout(gst_audio::AudioLayout::NonInterleaved)
+            .format(AUDIO_FORMAT_F32)
+            .rate(sample_rate as i32)
+            .build();
         let capsfilter = gst::ElementFactory::make("capsfilter")
             .property("caps", &caps)
             .build()

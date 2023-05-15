@@ -5,11 +5,6 @@ extern crate mime;
 extern crate glib_sys as glib_ffi;
 extern crate gstreamer_sys as gst_ffi;
 
-#[macro_use]
-extern crate glib;
-#[macro_use]
-extern crate gstreamer as gst;
-extern crate gstreamer_app as gst_app;
 extern crate gstreamer_audio as gst_audio;
 extern crate gstreamer_base as gst_base;
 extern crate gstreamer_player as gst_player;
@@ -338,39 +333,5 @@ impl WebRtcBackend for GStreamerBackend {
 impl BackendInit for GStreamerBackend {
     fn init() -> Box<dyn Backend> {
         Self::init_with_plugins(PathBuf::new(), &[]).unwrap()
-    }
-}
-
-pub fn set_element_flags<T: glib::IsA<gst::Object> + glib::IsA<gst::Element>>(
-    element: &T,
-    flags: gst::ElementFlags,
-) {
-    unsafe {
-        use glib::translate::IntoGlib;
-
-        let ptr: *mut gst_ffi::GstObject = element.as_ptr() as *mut _;
-        let _guard = MutexGuard::lock(&(*ptr).lock);
-        (*ptr).flags |= flags.into_glib();
-    }
-}
-
-struct MutexGuard<'a>(&'a glib_ffi::GMutex);
-
-impl<'a> MutexGuard<'a> {
-    pub fn lock(mutex: &'a glib_ffi::GMutex) -> Self {
-        use glib::translate::mut_override;
-        unsafe {
-            glib_ffi::g_mutex_lock(mut_override(mutex));
-        }
-        MutexGuard(mutex)
-    }
-}
-
-impl<'a> Drop for MutexGuard<'a> {
-    fn drop(&mut self) {
-        use glib::translate::mut_override;
-        unsafe {
-            glib_ffi::g_mutex_unlock(mut_override(self.0));
-        }
     }
 }

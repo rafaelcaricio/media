@@ -1,13 +1,10 @@
 use glib;
 use glib::once_cell::sync::Lazy;
-use glib::subclass;
 use glib::subclass::prelude::*;
-use glib::translate::*;
 use gst;
 use gst::prelude::*;
 use gst::subclass::prelude::*;
 use gst_app;
-use gst_base::prelude::*;
 use std::convert::TryFrom;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;

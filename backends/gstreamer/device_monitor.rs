@@ -1,5 +1,4 @@
 use gst::prelude::*;
-use gst::Caps;
 use gst::DeviceMonitor as GstDeviceMonitor;
 use std::cell::RefCell;
 
@@ -21,10 +20,10 @@ impl GStreamerDeviceMonitor {
         const AUDIO_SINK: &str = "Audio/Sink";
         const VIDEO_SOURCE: &str = "Video/Source";
         let device_monitor = GstDeviceMonitor::new();
-        let audio_caps = Caps::new_simple("audio/x-raw", &[]);
+        let audio_caps = gst_audio::AudioCapsBuilder::new().build();
         device_monitor.add_filter(Some(AUDIO_SOURCE), Some(&audio_caps));
         device_monitor.add_filter(Some(AUDIO_SINK), Some(&audio_caps));
-        let video_caps = Caps::new_simple("video/x-raw", &[]);
+        let video_caps = gst_video::VideoCapsBuilder::new().build();
         device_monitor.add_filter(Some(VIDEO_SOURCE), Some(&video_caps));
         let devices = device_monitor
             .devices()

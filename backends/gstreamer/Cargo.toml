@@ -2,6 +2,7 @@
 name = "servo-media-gstreamer"
 version = "0.1.0"
 authors = ["The Servo Project Developers"]
+edition = "2021"
 
 [build-dependencies]
 regex = "1.0"
@@ -29,10 +30,12 @@ version = "0.17"
 [dependencies.gstreamer-sys]
 version = "0.20"
 
-[dependencies.gstreamer]
+[dependencies.gst]
+package = "gstreamer"
 version = "0.20"
 
-[dependencies.gstreamer-app]
+[dependencies.gst_app]
+package = "gstreamer-app"
 version = "0.20"
 
 [dependencies.gstreamer-audio]
