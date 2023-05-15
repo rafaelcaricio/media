@@ -6,7 +6,6 @@
 //! wrapping the *appsink* from the Player. And the shared frames are
 //! mapped as texture IDs.
 
-#[macro_use]
 extern crate gstreamer as gst;
 extern crate gstreamer_gl as gst_gl;
 extern crate gstreamer_video as gst_video;

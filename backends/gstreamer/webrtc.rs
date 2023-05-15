@@ -393,15 +393,12 @@ impl GStreamerWebRtcController {
                 );
                 self.pt_counter = cmp::max(self.pt_counter, pt + 1);
             }
-            for cap in 0..caps_mut.size() {
+            for s in caps_mut.iter_mut() {
                 // the caps are application/x-unknown by default, which will fail
                 // to intersect
                 //
                 // see https://gitlab.freedesktop.org/gstreamer/gst-plugins-bad/blob/ba62917fbfd98ea76d4e066a6f18b4a14b847362/ext/webrtc/gstwebrtcbin.c#L2521
-                caps_mut
-                    .structure_mut(cap)
-                    .expect("Gstreamer reported incorrect get_size()")
-                    .set_name("application/x-rtp")
+                s.set_name("application/x-rtp")
             }
             // This info is not current until the promise from set-remote-description is resolved,
             // to avoid any races where we attempt to link streams before the promise resolves we
