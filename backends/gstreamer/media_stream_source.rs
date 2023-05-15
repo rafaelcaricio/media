@@ -124,18 +124,6 @@ mod imp {
             let proxy_pad = src_pad.internal().unwrap();
             src_pad.set_active(true).expect("Could not active pad");
             self.flow_combiner.lock().unwrap().add_pad(&proxy_pad);
-            let combiner = self.flow_combiner.clone();
-
-            unsafe {
-                proxy_pad.set_chain_function(move |pad, parent, buffer| {
-                    let chain_result = gst::ProxyPad::chain_default(pad, parent, buffer);
-                    let result = combiner.lock().unwrap().update_pad_flow(pad, chain_result);
-                    if result == Err(gst::FlowError::Flushing) {
-                        return chain_result;
-                    }
-                    result
-                });
-            }
 
             src.sync_state_with_parent().unwrap();
 
@@ -156,17 +144,48 @@ mod imp {
         // Called once at the very beginning of instantiation of each instance and
         // creates the data structure that contains all our state
         fn with_class(_klass: &Self::Class) -> Self {
+            let flow_combiner = Arc::new(Mutex::new(UniqueFlowCombiner::new()));
+
+            fn create_ghost_pad_with_template(
+                name: &str,
+                pad_template: &gst::PadTemplate,
+                flow_combiner: Arc<Mutex<UniqueFlowCombiner>>,
+            ) -> gst::GhostPad {
+                gst::GhostPad::builder_with_template(pad_template, Some(name))
+                    .chain_function({
+                        let flow_combiner = flow_combiner.clone();
+                        move |pad, parent, buffer| {
+                            let chain_result = gst::ProxyPad::chain_default(pad, parent, buffer);
+                            let result = flow_combiner
+                                .lock()
+                                .unwrap()
+                                .update_pad_flow(pad, chain_result);
+                            if result == Err(gst::FlowError::Flushing) {
+                                return chain_result;
+                            }
+                            result
+                        }
+                    })
+                    .build()
+            }
+
             let audio_proxysrc = gst::ElementFactory::make("proxysrc")
                 .build()
                 .expect("Could not create proxysrc element");
-            let audio_srcpad =
-                gst::GhostPad::from_template(&AUDIO_SRC_PAD_TEMPLATE, Some("audio_src"));
+            let audio_srcpad = create_ghost_pad_with_template(
+                "audio_src",
+                &AUDIO_SRC_PAD_TEMPLATE,
+                flow_combiner.clone(),
+            );
 
             let video_proxysrc = gst::ElementFactory::make("proxysrc")
                 .build()
                 .expect("Could not create proxysrc element");
-            let video_srcpad =
-                gst::GhostPad::from_template(&VIDEO_SRC_PAD_TEMPLATE, Some("video_src"));
+            let video_srcpad = create_ghost_pad_with_template(
+                "video_src",
+                &VIDEO_SRC_PAD_TEMPLATE,
+                flow_combiner.clone(),
+            );
 
             Self {
                 cat: gst::DebugCategory::new(
@@ -178,7 +197,7 @@ mod imp {
                 audio_srcpad,
                 video_proxysrc,
                 video_srcpad,
-                flow_combiner: Arc::new(Mutex::new(UniqueFlowCombiner::new())),
+                flow_combiner,
                 has_video_stream: Arc::new(AtomicBool::new(false)),
                 has_audio_stream: Arc::new(AtomicBool::new(false)),
             }
