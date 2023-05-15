@@ -29,7 +29,7 @@ impl Buffer for GStreamerBuffer {
     fn to_vec(&self) -> Result<VideoFrameData, ()> {
         // packed formats are guaranteed to be in a single plane
         if self.frame.format() == gst_video::VideoFormat::Rgba {
-            let tex_id = self.frame.get_texture_id(0).ok_or_else(|| ())?;
+            let tex_id = self.frame.texture_id(0).ok_or_else(|| ())?;
             Ok(if self.is_external_oes {
                 VideoFrameData::OESTexture(tex_id)
             } else {
@@ -69,14 +69,14 @@ impl RenderAndroid {
             GlApi::OpenGL3 => gst_gl::GLAPI::OPENGL3,
             GlApi::Gles1 => gst_gl::GLAPI::GLES1,
             GlApi::Gles2 => gst_gl::GLAPI::GLES2,
-            GlApi::None => gst_gl::GLAPI::NONE,
+            GlApi::None => return None,
         };
 
         let (wrapped_context, display) = match gl_context {
             GlContext::Egl(context) => {
                 let display = match display_native {
                     NativeDisplay::Egl(display_native) => {
-                        unsafe { gst_gl::GLDisplayEGL::new_with_egl_display(display_native) }
+                        unsafe { gstreamer_gl_egl::GLDisplayEGL::with_egl_display(display_native) }
                             .and_then(|display| Ok(display.upcast()))
                             .ok()
                     }
@@ -135,7 +135,7 @@ impl Render for RenderAndroid {
             .structure(0)
             .and_then(|s| {
                 s.get::<&str>("texture-target").ok().and_then(|target| {
-                    if target == Some("external-oes") {
+                    if target == "external-oes" {
                         Some(s)
                     } else {
                         None
@@ -147,7 +147,7 @@ impl Render for RenderAndroid {
         let info = gst_video::VideoInfo::from_caps(caps).map_err(|_| ())?;
 
         if self.gst_context.lock().unwrap().is_some() {
-            if let Some(sync_meta) = buffer.get_meta::<gst_gl::GLSyncMeta>() {
+            if let Some(sync_meta) = buffer.meta::<gst_gl::GLSyncMeta>() {
                 sync_meta.set_sync_point(self.gst_context.lock().unwrap().as_ref().unwrap());
             }
         }
@@ -156,7 +156,7 @@ impl Render for RenderAndroid {
             gst_video::VideoFrame::from_buffer_readable_gl(buffer, &info).or_else(|_| Err(()))?;
 
         if self.gst_context.lock().unwrap().is_some() {
-            if let Some(sync_meta) = frame.buffer().get_meta::<gst_gl::GLSyncMeta>() {
+            if let Some(sync_meta) = frame.buffer().meta::<gst_gl::GLSyncMeta>() {
                 // This should possibly be
                 // sync_meta.wait(&self.app_context);
                 // since we want the main app thread to sync it's GPU pipeline too,
@@ -189,7 +189,7 @@ impl Render for RenderAndroid {
         }
 
         let caps = gst::Caps::builder("video/x-raw")
-            .features(&[&gst_gl::CAPS_FEATURE_MEMORY_GL_MEMORY])
+            .features([gst_gl::CAPS_FEATURE_MEMORY_GL_MEMORY])
             .field("format", &gst_video::VideoFormat::Rgba.to_string())
             .field("texture-target", &gst::List::new(&[&"2D", &"external-oes"]))
             .build();
@@ -209,7 +209,10 @@ impl Render for RenderAndroid {
         bus.set_sync_handler(move |_, msg| {
             match msg.view() {
                 gst::MessageView::NeedContext(ctxt) => {
-                    if let Some(el) = msg.src().map(|s| s.downcast::<gst::Element>().unwrap()) {
+                    if let Some(el) = msg
+                        .src()
+                        .map(|s| s.clone().downcast::<gst::Element>().unwrap())
+                    {
                         let context_type = ctxt.context_type();
                         if context_type == *gst_gl::GL_DISPLAY_CONTEXT_TYPE {
                             let ctxt = gst::Context::new(context_type, true);

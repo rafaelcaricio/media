@@ -32,12 +32,12 @@ impl GStreamerAudioStreamReader {
         // gstreamer bug
         let caps = Caps::new_simple("audio/x-raw", &[("layout", &"interleaved")]);
         let capsfilter0 = gst::ElementFactory::make("capsfilter")
-            .property("caps", &caps)
+            .property("caps", caps)
             .build()
             .map_err(|_| "capsfilter creation failed".to_owned())?;
 
         let split = gst::ElementFactory::make("audiobuffersplit")
-            .property("output-buffer-duration", &time_per_block)
+            .property("output-buffer-duration", time_per_block)
             .build()
             .map_err(|_| "audiobuffersplit creation failed".to_owned())?;
         let convert = gst::ElementFactory::make("audioconvert")

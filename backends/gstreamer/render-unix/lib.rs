@@ -31,7 +31,7 @@ impl Buffer for GStreamerBuffer {
     fn to_vec(&self) -> Result<VideoFrameData, ()> {
         // packed formats are guaranteed to be in a single plane
         if self.frame.format() == gst_video::VideoFormat::Rgba {
-            let tex_id = self.frame.get_texture_id(0).ok_or_else(|| ())?;
+            let tex_id = self.frame.texture_id(0).ok_or_else(|| ())?;
             Ok(if self.is_external_oes {
                 VideoFrameData::OESTexture(tex_id)
             } else {
@@ -71,7 +71,7 @@ impl RenderUnix {
             GlApi::OpenGL3 => gst_gl::GLAPI::OPENGL3,
             GlApi::Gles1 => gst_gl::GLAPI::GLES1,
             GlApi::Gles2 => gst_gl::GLAPI::GLES2,
-            GlApi::None => gst_gl::GLAPI::NONE,
+            GlApi::None => return None,
         };
 
         let (wrapped_context, display) = match gl_context {
@@ -79,16 +79,16 @@ impl RenderUnix {
                 let display = match display_native {
                     #[cfg(feature = "gl-egl")]
                     NativeDisplay::Egl(display_native) => {
-                        unsafe { gst_gl::GLDisplayEGL::new_with_egl_display(display_native) }
+                        unsafe { gstreamer_gl_egl::GLDisplayEGL::with_egl_display(display_native) }
                             .and_then(|display| Ok(display.upcast()))
                             .ok()
                     }
                     #[cfg(feature = "gl-wayland")]
-                    NativeDisplay::Wayland(display_native) => {
-                        unsafe { gst_gl::GLDisplayWayland::new_with_display(display_native) }
-                            .and_then(|display| Ok(display.upcast()))
-                            .ok()
+                    NativeDisplay::Wayland(display_native) => unsafe {
+                        gstreamer_gl_wayland::GLDisplayWayland::with_display(display_native)
                     }
+                    .and_then(|display| Ok(display.upcast()))
+                    .ok(),
                     _ => None,
                 };
 
@@ -103,7 +103,7 @@ impl RenderUnix {
                 let display = match display_native {
                     #[cfg(feature = "gl-x11")]
                     NativeDisplay::X11(display_native) => {
-                        unsafe { gst_gl::GLDisplayX11::new_with_display(display_native) }
+                        unsafe { gstreamer_gl_x11::GLDisplayX11::with_display(display_native) }
                             .and_then(|display| Ok(display.upcast()))
                             .ok()
                     }
@@ -126,7 +126,7 @@ impl RenderUnix {
                 .activate(true)
                 .and_then(|_| {
                     app_context.fill_info().or_else(|err| {
-                        gst_warning!(
+                        gst::warning!(
                             cat,
                             "Couldn't fill the wrapped app GL context: {}",
                             err.to_string()
@@ -135,7 +135,7 @@ impl RenderUnix {
                     })
                 })
                 .or_else(|_| {
-                    gst_warning!(cat, "Couldn't activate the wrapped app GL context");
+                    gst::warning!(cat, "Couldn't activate the wrapped app GL context");
                     Ok(())
                 });
             Some(RenderUnix {
@@ -174,24 +174,20 @@ impl Render for RenderUnix {
         if self.gst_context.lock().unwrap().is_none() && self.gl_upload.lock().unwrap().is_some() {
             *self.gst_context.lock().unwrap() =
                 if let Some(glupload) = self.gl_upload.lock().unwrap().as_ref() {
-                    glupload
-                        .get_property("context")
-                        .or_else(|_| Err(()))?
-                        .get::<gst_gl::GLContext>()
-                        .unwrap_or_else(|_| None)
+                    Some(glupload.property::<gst_gl::GLContext>("context"))
                 } else {
                     None
                 };
         }
 
-        let buffer = sample.get_buffer_owned().ok_or_else(|| ())?;
-        let caps = sample.get_caps().ok_or_else(|| ())?;
+        let buffer = sample.buffer_owned().ok_or_else(|| ())?;
+        let caps = sample.caps().ok_or_else(|| ())?;
 
         let is_external_oes = caps
-            .get_structure(0)
+            .structure(0)
             .and_then(|s| {
                 s.get::<&str>("texture-target").ok().and_then(|target| {
-                    if target == Some("external-oes") {
+                    if target == "external-oes" {
                         Some(s)
                     } else {
                         None
@@ -225,34 +221,33 @@ impl Render for RenderUnix {
             ));
         }
 
-        let vsinkbin = gst::ElementFactory::make("glsinkbin", Some("servo-media-vsink"))
+        let vsinkbin = gst::ElementFactory::make("glsinkbin")
+            .name("servo-media-vsink")
+            .build()
             .map_err(|_| PlayerError::Backend("glupload creation failed".to_owned()))?;
 
         let caps = gst::Caps::builder("video/x-raw")
-            .features(&[&gst_gl::CAPS_FEATURE_MEMORY_GL_MEMORY])
+            .features([gst_gl::CAPS_FEATURE_MEMORY_GL_MEMORY])
             .field("format", &gst_video::VideoFormat::Rgba.to_string())
             .field("texture-target", &gst::List::new(&[&"2D", &"external-oes"]))
             .build();
-        appsink
-            .set_property("caps", &caps)
-            .expect("appsink doesn't have expected 'caps' property");
+        appsink.set_property("caps", caps);
 
-        vsinkbin
-            .set_property("sink", &appsink)
-            .expect("glsinkbin doesn't have expected 'sink' property");
+        vsinkbin.set_property("sink", appsink);
 
-        pipeline
-            .set_property("video-sink", &vsinkbin)
-            .expect("playbin doesn't have expected 'video-sink' property");
+        pipeline.set_property("video-sink", &vsinkbin);
 
-        let bus = pipeline.get_bus().expect("pipeline with no bus");
+        let bus = pipeline.bus().expect("pipeline with no bus");
         let display_ = self.display.clone();
         let context_ = self.app_context.clone();
         bus.set_sync_handler(move |_, msg| {
             match msg.view() {
                 gst::MessageView::NeedContext(ctxt) => {
-                    if let Some(el) = msg.get_src().map(|s| s.downcast::<gst::Element>().unwrap()) {
-                        let context_type = ctxt.get_context_type();
+                    if let Some(el) = msg
+                        .src()
+                        .map(|s| s.clone().downcast::<gst::Element>().unwrap())
+                    {
+                        let context_type = ctxt.context_type();
                         if context_type == *gst_gl::GL_DISPLAY_CONTEXT_TYPE {
                             let ctxt = gst::Context::new(context_type, true);
                             ctxt.set_gl_display(&display_);
@@ -260,7 +255,7 @@ impl Render for RenderUnix {
                         } else if context_type == "gst.gl.app_context" {
                             let mut ctxt = gst::Context::new(context_type, true);
                             {
-                                let s = ctxt.get_mut().unwrap().get_mut_structure();
+                                let s = ctxt.get_mut().unwrap().structure_mut();
                                 s.set_value("context", context_.to_send_value());
                             }
                             el.set_context(&ctxt);
@@ -280,7 +275,7 @@ impl Render for RenderUnix {
         *self.gl_upload.lock().unwrap() = loop {
             match iter.next() {
                 Ok(Some(element)) => {
-                    if "glupload" == element.get_factory().unwrap().get_name() {
+                    if "glupload" == element.factory().unwrap().name() {
                         break Some(element);
                     }
                 }
