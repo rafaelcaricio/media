@@ -417,11 +417,7 @@ impl GStreamerPlayer {
             }
         }
 
-        let player = gst_player::Player::new(
-            None::<gst_player::PlayerVideoRenderer>,
-            None::<gst_player::PlayerSignalDispatcher>,
-        );
-
+        let player = gst_player::Player::default();
         let pipeline = player.pipeline();
 
         // FIXME(#282): The progressive downloading breaks playback on Windows and Android.
@@ -664,16 +660,7 @@ impl GStreamerPlayer {
             let is_ready_clone = self.is_ready.clone();
             let observer = self.observer.clone();
             pipeline.connect("source-setup", false, move |args| {
-                let source = match args[1].get::<gst::Element>() {
-                    Ok(source) => source,
-                    _ => {
-                        let _ = notify!(
-                            sender,
-                            Err(PlayerError::Backend("Source setup failed".to_owned()))
-                        );
-                        return None;
-                    }
-                };
+                let source = args[1].get::<gst::Element>().unwrap();
 
                 let mut inner = inner_clone.lock().unwrap();
                 let source = match inner.stream_type {

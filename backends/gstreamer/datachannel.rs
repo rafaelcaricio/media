@@ -24,9 +24,9 @@ impl GStreamerWebRtcDataChannel {
     ) -> Result<Self, String> {
         let label = &init.label;
         let mut init_struct = gst::Structure::builder("options")
-            .field("ordered", &init.ordered)
+            .field("ordered", init.ordered)
             .field("protocol", &init.protocol)
-            .field("negotiated", &init.negotiated)
+            .field("negotiated", init.negotiated)
             .build();
 
         if let Some(max_packet_life_time) = init.max_packet_life_time {

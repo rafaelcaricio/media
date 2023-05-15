@@ -346,11 +346,11 @@ pub fn set_element_flags<T: glib::IsA<gst::Object> + glib::IsA<gst::Element>>(
     flags: gst::ElementFlags,
 ) {
     unsafe {
-        use glib::translate::ToGlibPtr;
+        use glib::translate::IntoGlib;
 
         let ptr: *mut gst_ffi::GstObject = element.as_ptr() as *mut _;
         let _guard = MutexGuard::lock(&(*ptr).lock);
-        (*ptr).flags |= flags.bits();
+        (*ptr).flags |= flags.into_glib();
     }
 }
 

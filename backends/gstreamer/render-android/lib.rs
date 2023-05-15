@@ -190,8 +190,8 @@ impl Render for RenderAndroid {
 
         let caps = gst::Caps::builder("video/x-raw")
             .features([gst_gl::CAPS_FEATURE_MEMORY_GL_MEMORY])
-            .field("format", &gst_video::VideoFormat::Rgba.to_string())
-            .field("texture-target", &gst::List::new(&[&"2D", &"external-oes"]))
+            .field("format", gst_video::VideoFormat::Rgba.to_str())
+            .field("texture-target", gst::List::new(&[&"2D", &"external-oes"]))
             .build();
         appsink.set_property("caps", &caps);
 
@@ -241,7 +241,7 @@ impl Render for RenderAndroid {
         *self.gl_upload.lock().unwrap() = loop {
             match iter.next() {
                 Ok(Some(element)) => {
-                    if "glupload" == element.factory().unwrap().name() {
+                    if Some(true) == element.factory().map(|f| f.name() == "glupload") {
                         break Some(element);
                     }
                 }

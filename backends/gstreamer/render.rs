@@ -133,21 +133,22 @@ impl GStreamerRender {
     ) -> Result<gst_app::AppSink, PlayerError> {
         let appsink = gst::ElementFactory::make("appsink")
             .build()
-            .map_err(|_| PlayerError::Backend("appsink creation failed".to_owned()))?;
+            .map_err(|_| PlayerError::Backend("appsink creation failed".to_owned()))?
+            .downcast::<gst_app::AppSink>()
+            .unwrap();
 
         if let Some(render) = self.render.as_ref() {
-            render.build_video_sink(&appsink, pipeline)?
+            render.build_video_sink(appsink.upcast_ref(), pipeline)?
         } else {
             let caps = gst::Caps::builder("video/x-raw")
-                .field("format", &gst_video::VideoFormat::Bgra.to_string())
-                .field("pixel-aspect-ratio", &gst::Fraction::from((1, 1)))
+                .field("format", gst_video::VideoFormat::Bgra.to_str())
+                .field("pixel-aspect-ratio", gst::Fraction::from((1, 1)))
                 .build();
 
-            appsink.set_property("caps", &caps);
+            appsink.set_caps(Some(&caps));
             pipeline.set_property("video-sink", &appsink);
         };
 
-        let appsink = appsink.dynamic_cast::<gst_app::AppSink>().unwrap();
         Ok(appsink)
     }
 }
