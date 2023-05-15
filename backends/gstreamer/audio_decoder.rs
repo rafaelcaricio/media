@@ -145,7 +145,6 @@ impl AudioDecoder for GStreamerAudioDecoder {
 
             let insert_deinterleave = || -> Result<(), AudioDecoderError> {
                 let convert = gst::ElementFactory::make("audioconvert")
-                    .property("mix-matrix", &gst::Array::default())
                     .build()
                     .map_err(|_| {
                         AudioDecoderError::Backend("audioconvert creation failed".to_owned())
