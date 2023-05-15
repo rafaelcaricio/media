@@ -529,11 +529,16 @@ impl GStreamerWebRtcController {
                 None
             });
 
-        let pipe_clone = self.pipeline.clone();
         let thread = Arc::new(Mutex::new(self.thread.clone()));
-        self.webrtc.connect("pad-added", false, move |values| {
-            process_new_stream(values, &pipe_clone, thread.clone());
-            None
+        self.webrtc.connect_pad_added({
+            let pipeline_weak = self.pipeline.downgrade();
+            move |_element, pad| {
+                let Some(pipe) = pipeline_weak.upgrade() else {
+                    warn!("Pipeline already deallocated");
+                    return;
+                };
+                process_new_stream(pad, &pipe, thread.clone());
+            }
         });
 
         // gstreamer needs Sync on these callbacks for some reason
@@ -700,7 +705,6 @@ fn on_offer_or_answer_created(
 
 fn on_incoming_stream(pipe: &gst::Pipeline, thread: Arc<Mutex<WebRtcThread>>, pad: &gst::Pad) {
     let decodebin = gst::ElementFactory::make("decodebin").build().unwrap();
-    let pipe_clone = pipe.clone();
     let caps = pad.query_caps(None);
     let name = caps
         .structure(0)
@@ -708,9 +712,15 @@ fn on_incoming_stream(pipe: &gst::Pipeline, thread: Arc<Mutex<WebRtcThread>>, pa
         .get::<String>("media")
         .expect("Invalid 'media' field");
     let decodebin2 = decodebin.clone();
-    decodebin.connect("pad-added", false, move |values| {
-        on_incoming_decodebin_stream(values, &pipe_clone, thread.clone(), &name);
-        None
+    decodebin.connect_pad_added({
+        let pipeline_weak = pipe.downgrade();
+        move |_element, pad| {
+            let Some(pipe) = pipeline_weak.upgrade() else {
+                warn!("Pipeline already deallocated");
+                return;
+            };
+            on_incoming_decodebin_stream(pad, &pipe, thread.clone(), &name);
+        }
     });
     pipe.add(&decodebin).unwrap();
 
@@ -720,12 +730,11 @@ fn on_incoming_stream(pipe: &gst::Pipeline, thread: Arc<Mutex<WebRtcThread>>, pa
 }
 
 fn on_incoming_decodebin_stream(
-    values: &[glib::Value],
+    pad: &gst::Pad,
     pipe: &gst::Pipeline,
     thread: Arc<Mutex<WebRtcThread>>,
     name: &str,
 ) {
-    let pad = values[1].get::<gst::Pad>().expect("not a pad??");
     let proxy_sink = gst::ElementFactory::make("proxysink").build().unwrap();
     let proxy_src = gst::ElementFactory::make("proxysrc")
         .property("proxysink", &proxy_sink)
@@ -754,12 +763,7 @@ fn on_incoming_decodebin_stream(
         .internal_event(InternalEvent::OnAddStream(stream, ty));
 }
 
-fn process_new_stream(
-    values: &[glib::Value],
-    pipe: &gst::Pipeline,
-    thread: Arc<Mutex<WebRtcThread>>,
-) {
-    let pad = values[1].get::<gst::Pad>().expect("not a pad??");
+fn process_new_stream(pad: &gst::Pad, pipe: &gst::Pipeline, thread: Arc<Mutex<WebRtcThread>>) {
     if pad.direction() != gst::PadDirection::Src {
         // Ignore outgoing pad notifications.
         return;
