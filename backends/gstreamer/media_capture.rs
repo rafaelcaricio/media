@@ -33,13 +33,10 @@ impl AddToCaps for Constrain<u32> {
                 let min = into_i32(r.min.unwrap_or(min));
                 let max = into_i32(r.max.unwrap_or(max));
                 let range = gst::IntRange::<i32>::new(min, max);
+
+                // TODO: Include the ideal caps value in the caps, needs a refactor
+                //       of the AddToCaps trait
                 Some(builder.field(name, &range))
-                // if let Some(ideal) = r.ideal {
-                //     let ideal = into_i32(ideal);
-                //     let array = gst::List::new(&[&ideal, &range]);
-                //     Some(builder.field(name, &array))
-                // } else {
-                // }
             }
         }
     }
@@ -76,12 +73,9 @@ impl AddToCaps for Constrain<f64> {
                     .and_then(|v| gst::Fraction::approximate_f64(v))
                     .unwrap_or(gst::Fraction::new(max, 1));
                 let range = gst::FractionRange::new(min, max);
+                // TODO: Include the ideal caps value in the caps, needs a refactor
+                //       of the AddToCaps trait
                 Some(builder.field(name, &range))
-                // if let Some(ideal) = r.ideal.and_then(|v| gst::Fraction::approximate_f64(v)) {
-                //     let array = gst::List::new(&[&ideal, &range]);
-                //     Some(builder.field(name, &array))
-                // } else {
-                // }
             }
         }
     }
