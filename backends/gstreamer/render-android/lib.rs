@@ -191,7 +191,7 @@ impl Render for RenderAndroid {
         let caps = gst::Caps::builder("video/x-raw")
             .features([gst_gl::CAPS_FEATURE_MEMORY_GL_MEMORY])
             .field("format", gst_video::VideoFormat::Rgba.to_str())
-            .field("texture-target", gst::List::new(&[&"2D", &"external-oes"]))
+            .field("texture-target", gst::List::new(["2D", "external-oes"]))
             .build();
         appsink.set_property("caps", &caps);
 

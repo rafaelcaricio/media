@@ -36,7 +36,7 @@ impl AddToCaps for Constrain<u32> {
 
                 // TODO: Include the ideal caps value in the caps, needs a refactor
                 //       of the AddToCaps trait
-                Some(builder.field(name, &range))
+                Some(builder.field(name, range))
             }
         }
     }
@@ -61,7 +61,7 @@ impl AddToCaps for Constrain<f64> {
     ) -> Option<gst::caps::Builder<NoFeature>> {
         match self {
             Constrain::Value(v) => {
-                Some(builder.field("name", &gst::Fraction::approximate_f64(*v)?))
+                Some(builder.field("name", gst::Fraction::approximate_f64(*v)?))
             }
             Constrain::Range(r) => {
                 let min = r
@@ -75,7 +75,7 @@ impl AddToCaps for Constrain<f64> {
                 let range = gst::FractionRange::new(min, max);
                 // TODO: Include the ideal caps value in the caps, needs a refactor
                 //       of the AddToCaps trait
-                Some(builder.field(name, &range))
+                Some(builder.field(name, range))
             }
         }
     }

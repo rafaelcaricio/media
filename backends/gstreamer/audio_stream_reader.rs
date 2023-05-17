@@ -51,7 +51,7 @@ impl GStreamerAudioStreamReader {
             .rate(sample_rate as i32)
             .build();
         let capsfilter = gst::ElementFactory::make("capsfilter")
-            .property("caps", &caps)
+            .property("caps", caps)
             .build()
             .map_err(|_| "capsfilter creation failed".to_owned())?;
         let sink = gst::ElementFactory::make("appsink")
