@@ -8,6 +8,7 @@ use gst;
 use gst::prelude::*;
 use gst_sdp;
 use gst_webrtc;
+use log::warn;
 use servo_media_streams::registry::{get_stream, MediaStreamId};
 use servo_media_streams::MediaStreamType;
 use servo_media_webrtc::datachannel::DataChannelId;

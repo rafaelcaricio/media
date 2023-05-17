@@ -24,10 +24,12 @@ version = "0.2"
 [dependencies.glib]
 version = "0.17"
 
-[dependencies.glib-sys]
+[dependencies.glib-ffi]
+package = "glib-sys"
 version = "0.17"
 
-[dependencies.gstreamer-sys]
+[dependencies.gst-ffi]
+package = "gstreamer-sys"
 version = "0.20"
 
 [dependencies.gst]
@@ -38,23 +40,29 @@ version = "0.20"
 package = "gstreamer-app"
 version = "0.20"
 
-[dependencies.gstreamer-audio]
+[dependencies.gst-audio]
+package = "gstreamer-audio"
 version = "0.20"
 
-[dependencies.gstreamer-base]
+[dependencies.gst-base]
+package = "gstreamer-base"
 version = "0.20"
 
-[dependencies.gstreamer-player]
+[dependencies.gst-player]
+package = "gstreamer-player"
 version = "0.20"
 
-[dependencies.gstreamer-sdp]
+[dependencies.gst-sdp]
+package = "gstreamer-sdp"
 version = "0.20"
 
-[dependencies.gstreamer-webrtc]
+[dependencies.gst-webrtc]
+package = "gstreamer-webrtc"
 version = "0.20"
 features = ["v1_18"]
 
-[dependencies.gstreamer-video]
+[dependencies.gst-video]
+package = "gstreamer-video"
 version = "0.20"
 
 [dependencies.ipc-channel]

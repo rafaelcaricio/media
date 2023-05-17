@@ -5,13 +5,6 @@
 //! wrapping the *appsink* from the Player. And the shared frames are
 //! mapped as texture IDs.
 
-extern crate gstreamer as gst;
-extern crate gstreamer_gl as gst_gl;
-extern crate gstreamer_video as gst_video;
-
-extern crate servo_media_gstreamer_render as sm_gst_render;
-extern crate servo_media_player as sm_player;
-
 use gst::prelude::*;
 use gst_gl::prelude::*;
 use sm_gst_render::Render;

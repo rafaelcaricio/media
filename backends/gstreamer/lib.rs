@@ -1,31 +1,3 @@
-extern crate boxfnonce;
-extern crate byte_slice_cast;
-extern crate mime;
-
-extern crate glib_sys as glib_ffi;
-extern crate gstreamer_sys as gst_ffi;
-
-extern crate gstreamer_audio as gst_audio;
-extern crate gstreamer_base as gst_base;
-extern crate gstreamer_player as gst_player;
-extern crate gstreamer_sdp as gst_sdp;
-extern crate gstreamer_video as gst_video;
-extern crate gstreamer_webrtc as gst_webrtc;
-extern crate ipc_channel;
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
-
-extern crate servo_media;
-extern crate servo_media_audio;
-extern crate servo_media_gstreamer_render;
-extern crate servo_media_player;
-extern crate servo_media_streams;
-extern crate servo_media_traits;
-extern crate servo_media_webrtc;
-extern crate url;
-
 pub mod audio_decoder;
 pub mod audio_sink;
 pub mod audio_stream_reader;
@@ -43,6 +15,8 @@ pub mod webrtc;
 use device_monitor::GStreamerDeviceMonitor;
 use gst::prelude::*;
 use ipc_channel::ipc::IpcSender;
+use lazy_static::lazy_static;
+use log::warn;
 use media_stream::GStreamerMediaStream;
 use mime::Mime;
 use registry_scanner::GSTREAMER_REGISTRY_SCANNER;

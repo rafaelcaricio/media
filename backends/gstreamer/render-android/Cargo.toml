@@ -10,20 +10,25 @@ path = "lib.rs"
 [dependencies.glib]
 version = "0.17"
 
-[dependencies.gstreamer]
+[dependencies.gst]
+package = "gstreamer"
 version = "0.20"
 
-[dependencies.gstreamer-gl]
+[dependencies.gst-gl]
+package = "gstreamer-gl"
 version = "0.20"
 
 [dependencies.gstreamer-gl-egl]
 version = "0.20"
 
-[dependencies.gstreamer-video]
+[dependencies.gst-video]
+package = "gstreamer-video"
 version = "0.20"
 
-[dependencies.servo-media-player]
+[dependencies.sm-player]
+package = "servo-media-player"
 path = "../../../player"
 
-[dependencies.servo-media-gstreamer-render]
+[dependencies.sm-gst-render]
+package = "servo-media-gstreamer-render"
 path = "../render"

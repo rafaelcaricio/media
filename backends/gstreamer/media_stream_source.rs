@@ -4,6 +4,7 @@ use glib::subclass::prelude::*;
 use gst::prelude::*;
 use gst::subclass::prelude::*;
 use gst_base::UniqueFlowCombiner;
+use lazy_static::lazy_static;
 use servo_media_streams::{MediaStream, MediaStreamType};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};

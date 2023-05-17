@@ -1,6 +1,7 @@
 use super::BACKEND_BASE_TIME;
 use gst;
 use gst::prelude::*;
+use lazy_static::lazy_static;
 use servo_media_streams::registry::{
     get_stream, register_stream, unregister_stream, MediaStreamId,
 };
