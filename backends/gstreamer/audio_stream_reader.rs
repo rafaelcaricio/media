@@ -29,7 +29,7 @@ impl GStreamerAudioStreamReader {
         let time_per_block = Fraction::new(FRAMES_PER_BLOCK_USIZE as i32, sample_rate as i32);
 
         // XXXManishearth this is only necessary because of an upstream
-        // gstreamer bug
+        // gstreamer bug. https://github.com/servo/media/pull/362#issuecomment-647947034
         let caps = gst_audio::AudioCapsBuilder::new()
             .layout(gst_audio::AudioLayout::Interleaved)
             .build();
