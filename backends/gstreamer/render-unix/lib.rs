@@ -6,11 +6,11 @@
 //! wrapping the *appsink* from the Player. And the shared frames are
 //! mapped as texture IDs.
 
-use sm_player;
-use sm_gst_render;
 use gst::prelude::*;
 use gst_gl::prelude::*;
+use sm_gst_render;
 use sm_gst_render::Render;
+use sm_player;
 use sm_player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
 use sm_player::video::{Buffer, VideoFrame, VideoFrameData};
 use sm_player::PlayerError;

@@ -2,6 +2,7 @@
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
 authors = ["The Servo Project Developers"]
+edition = "2021"
 
 [lib]
 name = "servo_media_gstreamer_render_android"
