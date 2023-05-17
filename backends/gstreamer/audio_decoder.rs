@@ -368,8 +368,8 @@ impl AudioDecoder for GStreamerAudioDecoder {
             {
                 let buffer = buffer.get_mut().unwrap();
                 let mut map = buffer.map_writable().unwrap();
-                let mut buffer = map.as_mut_slice();
-                let _ = reader.read(&mut buffer);
+                let buffer = map.as_mut_slice();
+                let _ = reader.read(buffer);
             }
             let _ = appsrc.push_buffer(buffer);
         }

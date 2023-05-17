@@ -444,7 +444,7 @@ impl GStreamerWebRtcController {
             .iter()
             .enumerate()
             .filter(|(_, x)| !x.is_used)
-            .find(|(_, x)| x.caps.can_intersect(&caps))
+            .find(|(_, x)| x.caps.can_intersect(caps))
             .map(|x| x.0);
         if let Some(idx) = idx {
             if idx >= self.request_pad_counter {
@@ -474,7 +474,7 @@ impl GStreamerWebRtcController {
                 .static_pad(&format!("sink_{}", idx))
                 .ok_or("Cannot request sink pad")?;
             src.link(&sink)?;
-            self.streams.push(stream_id.clone());
+            self.streams.push(*stream_id);
         } else if request_new_pads {
             stream.attach_to_pipeline(&self.pipeline);
             let element = stream.encoded();
@@ -488,9 +488,9 @@ impl GStreamerWebRtcController {
                 .ok_or("Cannot request sink pad")?;
             self.request_pad_counter += 1;
             src.link(&sink)?;
-            self.streams.push(stream_id.clone());
+            self.streams.push(*stream_id);
         } else {
-            self.pending_streams.push(stream_id.clone());
+            self.pending_streams.push(*stream_id);
         }
         Ok(())
     }
@@ -765,7 +765,7 @@ fn process_new_stream(pad: &gst::Pad, pipe: &gst::Pipeline, thread: Arc<Mutex<We
         // Ignore outgoing pad notifications.
         return;
     }
-    on_incoming_stream(pipe, thread, &pad)
+    on_incoming_stream(pipe, thread, pad)
 }
 
 fn candidate(values: &[glib::Value]) -> IceCandidate {

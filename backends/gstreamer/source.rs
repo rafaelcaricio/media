@@ -1,10 +1,7 @@
-use glib;
 use glib::once_cell::sync::Lazy;
 use glib::subclass::prelude::*;
-use gst;
 use gst::prelude::*;
 use gst::subclass::prelude::*;
-use gst_app;
 use std::convert::TryFrom;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
@@ -30,19 +27,10 @@ mod imp {
         };
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Default)]
     struct Position {
         offset: u64,
         requested_offset: u64,
-    }
-
-    impl Default for Position {
-        fn default() -> Self {
-            Position {
-                offset: 0,
-                requested_offset: 0,
-            }
-        }
     }
 
     // The actual data structure that stores our values. This is not accessible

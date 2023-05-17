@@ -246,9 +246,7 @@ impl PlayerInner {
                 let mut buffering = gst::query::Buffering::new(gst::Format::Percent);
                 if pipeline.query(&mut buffering) {
                     let ranges = buffering.ranges();
-                    for i in 0..ranges.len() {
-                        let start = ranges[i].0;
-                        let end = ranges[i].1;
+                    for (start, end) in &ranges {
                         let start = (if let gst::GenericFormattedValue::Percent(start) = start {
                             start.unwrap()
                         } else {
@@ -442,19 +440,16 @@ impl GStreamerPlayer {
                     ));
                 }
             };
-            let flags = match flags_class.set_by_nick("download").build() {
-                Some(flags) => flags,
-                None => {
-                    return Err(PlayerError::Backend(
-                        "FlagsClass creation failed".to_owned(),
-                    ));
-                }
+            let Some(flags) = flags_class.set_by_nick("download").build() else {
+                return Err(PlayerError::Backend(
+                    "FlagsClass creation failed".to_owned(),
+                ));
             };
             pipeline.set_property_from_value("flags", &flags);
         }
 
         // Set max size for the player buffer.
-        pipeline.set_property("buffer-size", &MAX_BUFFER_SIZE);
+        pipeline.set_property("buffer-size", MAX_BUFFER_SIZE);
 
         // Set player position interval update to 0.5 seconds.
         let mut config = player.config();
@@ -616,13 +611,10 @@ impl GStreamerPlayer {
                 metadata.duration = duration;
                 updated_metadata = Some(metadata.clone());
             }
-            if updated_metadata.is_some() {
+            if let Some(updated_metadata) = updated_metadata {
                 gst::info!(inner.cat, obj: &inner.player, "Duration updated: {:?}",
                               updated_metadata);
-                notify!(
-                    observer,
-                    PlayerEvent::MetadataUpdated(updated_metadata.unwrap())
-                );
+                notify!(observer, PlayerEvent::MetadataUpdated(updated_metadata));
             }
         });
 
@@ -639,7 +631,7 @@ impl GStreamerPlayer {
                             .lock()
                             .unwrap()
                             .get_frame_from_sample(sample)
-                            .or_else(|_| Err(gst::FlowError::Error))?;
+                            .map_err(|_| gst::FlowError::Error)?;
                         video_renderer.lock().unwrap().render(frame);
                         notify!(observer, PlayerEvent::VideoFrameUpdated);
                         Ok(gst::FlowSuccess::Ok)
@@ -666,7 +658,6 @@ impl GStreamerPlayer {
                 let source = match inner.stream_type {
                     StreamType::Seekable => {
                         let servosrc = source
-                            .clone()
                             .dynamic_cast::<ServoSrc>()
                             .expect("Source element is expected to be a ServoSrc!");
 
@@ -731,12 +722,11 @@ impl GStreamerPlayer {
                     }
                     StreamType::Stream => {
                         let media_stream_src = source
-                            .clone()
                             .dynamic_cast::<ServoMediaStreamSrc>()
                             .expect("Source element is expected to be a ServoMediaStreamSrc!");
                         let sender_clone = sender.clone();
                         is_ready_clone.call_once(|| {
-                            let _ = notify!(sender_clone, Ok(()));
+                            notify!(sender_clone, Ok(()));
                         });
                         PlayerSource::Stream(media_stream_src)
                     }
@@ -748,7 +738,7 @@ impl GStreamerPlayer {
             });
 
             let error_handler_id = inner.player.connect_error(move |player, error| {
-                let _ = notify!(sender_clone, Err(PlayerError::Backend(error.to_string())));
+                notify!(sender_clone, Err(PlayerError::Backend(error.to_string())));
                 player.stop();
             });
 

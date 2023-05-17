@@ -1,7 +1,4 @@
 use glib::prelude::*;
-use gst;
-use gst_app;
-use gst_video;
 
 use std::sync::Arc;
 
@@ -112,8 +109,8 @@ impl GStreamerRender {
         if let Some(render) = self.render.as_ref() {
             render.build_frame(sample)
         } else {
-            let buffer = sample.buffer_owned().ok_or_else(|| ())?;
-            let caps = sample.caps().ok_or_else(|| ())?;
+            let buffer = sample.buffer_owned().ok_or(())?;
+            let caps = sample.caps().ok_or(())?;
             let info = gst_video::VideoInfo::from_caps(caps).map_err(|_| ())?;
 
             let frame =

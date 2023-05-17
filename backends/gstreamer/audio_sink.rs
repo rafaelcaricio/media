@@ -177,8 +177,8 @@ impl AudioSink for GStreamerAudioSink {
         let audio_info = audio_info.as_ref().unwrap();
         let channels = audio_info.channels();
         let bpf = audio_info.bpf() as usize;
-        assert!(bpf == 4 * channels as usize);
-        let n_samples = FRAMES_PER_BLOCK.0 as u64;
+        assert_eq!(bpf, 4 * channels as usize);
+        let n_samples = FRAMES_PER_BLOCK.0;
         let buf_size = (n_samples as usize) * (bpf);
         let mut buffer = gst::Buffer::with_size(buf_size).unwrap();
         {

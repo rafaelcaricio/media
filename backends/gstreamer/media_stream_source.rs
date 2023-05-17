@@ -1,8 +1,6 @@
 use crate::media_stream::{GStreamerMediaStream, RTP_CAPS_OPUS, RTP_CAPS_VP8};
-use glib;
 use glib::once_cell::sync::Lazy;
 use glib::subclass::prelude::*;
-use gst;
 use gst::prelude::*;
 use gst::subclass::prelude::*;
 use gst_base::UniqueFlowCombiner;
@@ -103,7 +101,7 @@ mod imp {
                     )
                 }
             };
-            proxysrc.set_property("proxysink", &sink);
+            proxysrc.set_property("proxysink", sink);
 
             // Add proxysrc to bin
             let bin = src.downcast_ref::<gst::Bin>().unwrap();
@@ -153,7 +151,6 @@ mod imp {
             ) -> gst::GhostPad {
                 gst::GhostPad::builder_with_template(pad_template, Some(name))
                     .chain_function({
-                        let flow_combiner = flow_combiner.clone();
                         move |pad, parent, buffer| {
                             let chain_result = gst::ProxyPad::chain_default(pad, parent, buffer);
                             let result = flow_combiner

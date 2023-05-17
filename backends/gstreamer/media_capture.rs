@@ -60,17 +60,15 @@ impl AddToCaps for Constrain<f64> {
         builder: gst::caps::Builder<NoFeature>,
     ) -> Option<gst::caps::Builder<NoFeature>> {
         match self {
-            Constrain::Value(v) => {
-                Some(builder.field("name", gst::Fraction::approximate_f64(*v)?))
-            }
+            Constrain::Value(v) => Some(builder.field("name", gst::Fraction::approximate_f64(*v)?)),
             Constrain::Range(r) => {
                 let min = r
                     .min
-                    .and_then(|v| gst::Fraction::approximate_f64(v))
+                    .and_then(gst::Fraction::approximate_f64)
                     .unwrap_or(gst::Fraction::new(min, 1));
                 let max = r
                     .max
-                    .and_then(|v| gst::Fraction::approximate_f64(v))
+                    .and_then(gst::Fraction::approximate_f64)
                     .unwrap_or(gst::Fraction::new(max, 1));
                 let range = gst::FractionRange::new(min, max);
                 // TODO: Include the ideal caps value in the caps, needs a refactor

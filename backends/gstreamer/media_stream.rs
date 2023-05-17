@@ -60,8 +60,8 @@ impl GStreamerMediaStream {
 
     pub fn caps(&self) -> &gst::Caps {
         match self.type_ {
-            MediaStreamType::Audio => &*RTP_CAPS_OPUS,
-            MediaStreamType::Video => &*RTP_CAPS_VP8,
+            MediaStreamType::Audio => &RTP_CAPS_OPUS,
+            MediaStreamType::Video => &RTP_CAPS_VP8,
         }
     }
 
@@ -235,7 +235,7 @@ impl MediaSink {
 
 impl MediaOutput for MediaSink {
     fn add_stream(&mut self, stream: &MediaStreamId) {
-        let stream = get_stream(&stream).expect("Media streams registry does not contain such ID");
+        let stream = get_stream(stream).expect("Media streams registry does not contain such ID");
         {
             let mut stream = stream.lock().unwrap();
             let stream = stream

@@ -30,7 +30,7 @@ impl Buffer for GStreamerBuffer {
     fn to_vec(&self) -> Result<VideoFrameData, ()> {
         // packed formats are guaranteed to be in a single plane
         if self.frame.format() == gst_video::VideoFormat::Rgba {
-            let tex_id = self.frame.texture_id(0).ok_or_else(|| ())?;
+            let tex_id = self.frame.texture_id(0).ok_or(())?;
             Ok(if self.is_external_oes {
                 VideoFrameData::OESTexture(tex_id)
             } else {
@@ -79,14 +79,14 @@ impl RenderUnix {
                     #[cfg(feature = "gl-egl")]
                     NativeDisplay::Egl(display_native) => {
                         unsafe { gstreamer_gl_egl::GLDisplayEGL::with_egl_display(display_native) }
-                            .and_then(|display| Ok(display.upcast()))
+                            .map(|display| display.upcast())
                             .ok()
                     }
                     #[cfg(feature = "gl-wayland")]
                     NativeDisplay::Wayland(display_native) => unsafe {
                         gstreamer_gl_wayland::GLDisplayWayland::with_display(display_native)
                     }
-                    .and_then(|display| Ok(display.upcast()))
+                    .map(|display| display.upcast())
                     .ok(),
                     _ => None,
                 };
@@ -103,7 +103,7 @@ impl RenderUnix {
                     #[cfg(feature = "gl-x11")]
                     NativeDisplay::X11(display_native) => {
                         unsafe { gstreamer_gl_x11::GLDisplayX11::with_display(display_native) }
-                            .and_then(|display| Ok(display.upcast()))
+                            .map(|display| display.upcast())
                             .ok()
                     }
                     _ => None,
@@ -179,8 +179,8 @@ impl Render for RenderUnix {
                 };
         }
 
-        let buffer = sample.buffer_owned().ok_or_else(|| ())?;
-        let caps = sample.caps().ok_or_else(|| ())?;
+        let buffer = sample.buffer_owned().ok_or(())?;
+        let caps = sample.caps().ok_or(())?;
 
         let is_external_oes = caps
             .structure(0)
@@ -195,7 +195,7 @@ impl Render for RenderUnix {
             })
             .is_some();
 
-        let info = gst_video::VideoInfo::from_caps(caps).or_else(|_| Err(()))?;
+        let info = gst_video::VideoInfo::from_caps(caps).map_err(|_| ())?;
         let frame =
             gst_video::VideoFrame::from_buffer_readable_gl(buffer, &info).map_err(|_| ())?;
 
@@ -228,7 +228,7 @@ impl Render for RenderUnix {
         let caps = gst::Caps::builder("video/x-raw")
             .features([gst_gl::CAPS_FEATURE_MEMORY_GL_MEMORY])
             .field("format", gst_video::VideoFormat::Rgba.to_str())
-            .field("texture-target", gst::List::new(&[&"2D", &"external-oes"]))
+            .field("texture-target", gst::List::new(["2D", "external-oes"]))
             .build();
         appsink.set_property("caps", caps);
 

@@ -54,7 +54,7 @@ impl GStreamerWebRtcDataChannel {
         channel: WebRTCDataChannel,
         thread: &WebRtcThread,
     ) -> Result<Self, String> {
-        let id_ = id.clone();
+        let id_ = *id;
         let thread_ = Mutex::new(thread.clone());
         channel.connect_on_open(move |_| {
             thread_
@@ -66,7 +66,7 @@ impl GStreamerWebRtcDataChannel {
                 ));
         });
 
-        let id_ = id.clone();
+        let id_ = *id;
         let thread_ = Mutex::new(thread.clone());
         channel.connect_on_close(move |_| {
             thread_
@@ -78,7 +78,7 @@ impl GStreamerWebRtcDataChannel {
                 ));
         });
 
-        let id_ = id.clone();
+        let id_ = *id;
         let thread_ = Mutex::new(thread.clone());
         channel.connect_on_error(move |_, error| {
             thread_
@@ -90,7 +90,7 @@ impl GStreamerWebRtcDataChannel {
                 ));
         });
 
-        let id_ = id.clone();
+        let id_ = *id;
         let thread_ = Mutex::new(thread.clone());
         channel.connect_on_message_string(move |_, message| {
             let Some(message) = message.map(|s| s.to_owned()) else {
@@ -105,7 +105,7 @@ impl GStreamerWebRtcDataChannel {
                 ));
         });
 
-        let id_ = id.clone();
+        let id_ = *id;
         let thread_ = Mutex::new(thread.clone());
         channel.connect_on_message_data(move |_, message| {
             let Some(message) = message.map(|b| b.to_owned()) else {
@@ -120,7 +120,7 @@ impl GStreamerWebRtcDataChannel {
                 ));
         });
 
-        let id_ = id.clone();
+        let id_ = *id;
         let thread_ = Mutex::new(thread.clone());
         channel.connect_ready_state_notify(move |channel| {
             let ready_state = channel.ready_state();
@@ -142,8 +142,8 @@ impl GStreamerWebRtcDataChannel {
         });
 
         Ok(Self {
-            id: id.clone(),
-            thread: thread.clone(),
+            id: *id,
+            thread: thread.to_owned(),
             channel,
         })
     }
