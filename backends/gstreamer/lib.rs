@@ -103,6 +103,8 @@ impl GStreamerBackend {
             })
             .unwrap();
 
+        thread::spawn(|| glib::MainLoop::new(None, false).run());
+
         Ok(Box::new(GStreamerBackend {
             capture_mocking: AtomicBool::new(false),
             instances,
