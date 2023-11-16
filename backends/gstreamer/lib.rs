@@ -103,7 +103,17 @@ impl GStreamerBackend {
             })
             .unwrap();
 
-        thread::spawn(|| glib::MainLoop::new(None, false).run());
+        // from GStreamer 1.19.1 to 1.22.7 glib's MainLoop is required
+        {
+            fn make_version(major: u32, minor: u32, micro: u32) -> u32 {
+                major << 29 | minor << 22 | micro << 12
+            }
+            let (major, minor, micro, _) = gst::version();
+            let gst_version = make_version(major, minor, micro);
+            if  gst_version >= make_version(1, 19, 1) && gst_version <= make_version(1, 22, 7) {
+                thread::spawn(|| glib::MainLoop::new(None, false).run());
+            }
+        }
 
         Ok(Box::new(GStreamerBackend {
             capture_mocking: AtomicBool::new(false),
